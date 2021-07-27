@@ -1,18 +1,23 @@
+#git version
 import stanza
 import pickle
 import nltk
 from nltk.tokenize import word_tokenize
 import os
+import os.path
 from nltk.translate.bleu_score import sentence_bleu
+import random
 
-# preprocessing functions
-#TODO: use the get_bleu_score_from_list in the code
+#July 27 2021
 
 def load_model(lang, model_type):
     if model_type == "pos":
         model = stanza.Pipeline(lang, processors='tokenize,pos', tokenize_no_ssplit=True)
     if model_type == "ner":
         model = stanza.Pipeline(lang, processors='tokenize,ner')
+    if model_type == "feat":
+        model = stanza.Pipeline(lang, processors='tokenize,mwt,pos,lemma,depparse')
+
 
     return model
 
@@ -34,7 +39,8 @@ def load_sentences(filepath):
     :return: list of sentences
     """
     temp_list = []
-    with open(filepath, 'r', encoding="utf-8") as txtfile:
+    # with open(filepath, 'r', encoding="utf-8") as txtfile: #switched 'r' to 'rb'
+    with open(filepath, 'r') as txtfile:
         for line in txtfile:
             line = line.rstrip("\n")
             temp_list.append(line)
@@ -50,7 +56,67 @@ def save_file(sentences, outpath):
             fileout.write(sentence + "\n")
     return
 
+def make_folder(MYDIR):
+    """
+    :param MYDIR: path to folder (to create)
+    """
+    # make directory
+    CHECK_FOLDER = os.path.isdir(MYDIR)
 
+    # If folder doesn't exist, then create it.
+    if not CHECK_FOLDER:
+        os.makedirs(MYDIR)
+        print("created folder : ", MYDIR)
+
+    else:
+        print(MYDIR, "folder already exists.")
+
+    return
+
+def preprocess(txt_path,DIR_OUT_TEMP,name_outfile,lang,model_type,mask_type=None, save = False):
+    """
+    :return: parsed (stanza) txt, to load (in order to save running time)
+    note: I can parse once with stanza for ner, pos, feats, but for the sake of generality in the code I do it seperately
+    """
+
+    dict_model_pickle = {} #save the stanza parsed model to load later (save run time)
+
+    if type(txt_path) == list:
+        sentences = txt_path
+
+    else:
+        sentences = load_sentences(txt_path)
+
+    model = load_model(lang, model_type)
+
+    if mask_type == "pos":
+
+        for i in range(len(sentences)):
+            doc = model(sentences[i])
+            dict_model_pickle[i] = doc
+
+        if save is True:
+            save_pickle(DIR_OUT_TEMP + name_outfile + "_"+ mask_type + ".txt",dict_model_pickle)
+
+    if mask_type == "ner":
+
+        for i in range(len(sentences)):
+            doc = model(sentences[i])
+            dict_model_pickle[i] = doc
+
+        if save is True:
+            save_pickle(DIR_OUT_TEMP + name_outfile + "_"+ mask_type + ".txt",dict_model_pickle)
+
+    if mask_type == "feat":
+
+        for i in range(len(sentences)):
+            doc = model(sentences[i])
+            dict_model_pickle[i] = doc
+
+        if save is True:
+            save_pickle(DIR_OUT_TEMP + name_outfile + "_"+ mask_type + ".txt",dict_model_pickle)
+
+    return dict_model_pickle
 ###########################################################
 
 # def get_mask_list(txt_path, model, pos = False, ner = False):
@@ -76,26 +142,49 @@ def get_mask_list(txt_path, model_type, lang):
 
     if model_type == "ner":
 
+        #currently I don't use this list because I use a saved ner list, but this can be changed
+
         for i in range(len(sentences)):
             doc = model(sentences[i])
             for ent in doc.ents:
-                print("ent.type",ent.type)
+                print("ent.type", ent.type)
                 #mask_list.append(str(ent.type))
 
         #mask_list = list(set(mask_list))
 
+    if model_type == "feat":
+
+        for sentence in sentences:
+            doc = model(sentence)
+            for sent in doc.sentences:
+                for word in sent.words:
+                    if word.feats is not "None":
+                        mask_list.append(word.feats.split("|")[0].split("=")[1]) #CHECK
+
+
+    mask_list = set(mask_list)
+
     return mask_list
 
-# def mask_text(txt_path, model, pos = None, ner = None, mask = None):
 
-def mask_text(txt_path, model, mask, mask_type=None):
+def mask_text(txt_path, parsed_model, mask, mask_type=None):
+    """
+    :return: masked sentnces + indices of masked sentences (ones containing the mask)
+    """
+
+    #masked_ref, indices_ref = mask_text(reference_path, parsed_model_ref, mask, mask_type)
+    #masked_candidate, indices_candidate = mask_text(candidate_path, parsed_model_candidate, mask, mask_type)
+
     if type(txt_path) == list:
         sentences = txt_path
 
     else:
         sentences = load_sentences(txt_path)
 
-    # print("len(sentences)", len(sentences))
+    print('txt_path',txt_path)
+    print('len(sentences)',len(sentences))
+
+    #print("len(sentences)", len(sentences))
 
     masked_sentences = []
     indices = []
@@ -103,7 +192,7 @@ def mask_text(txt_path, model, mask, mask_type=None):
     if mask_type == "pos":
 
         for i in range(len(sentences)):
-            doc = model(sentences[i])
+            doc = parsed_model[i]
             for sent in doc.sentences:
                 sentence_temp = []
                 for word in sent.words:
@@ -115,11 +204,46 @@ def mask_text(txt_path, model, mask, mask_type=None):
                 masked_sentences.append(" ".join(sentence_temp))
         indices = list(set(indices))
 
+    if mask_type == "feat":
+
+        """for i in range(len(sentences)):
+            doc = parsed_model[i]
+            for sent in doc.sentences:
+                sentence_temp = []
+                for word in sent.words:
+                    if word.feats is not None:
+                        if word.feats.split("|")[0].split("=")[0] == mask: #Gender/Number
+                            sentence_temp.append(word.feats.split("|")[0].split("=")[1]) #Append the feature itself (value for Gender/Number etc)
+                            indices.append(i)
+                        else:
+                            sentence_temp.append(word.text)
+                    else:
+                        sentence_temp.append(word.text)
+                    masked_sentences.append(" ".join(sentence_temp))
+        indices = list(set(indices))"""
+
+        #second trial
+        for i in range(len(sentences)):
+            doc = parsed_model[i]
+            for sent in doc.sentences:
+                sentence_temp = []
+                for word in sent.words:
+                    if (word.feats is not None) and (word.feats.split("|")[0].split("=")[0] == mask):
+                        #if word.feats.split("|")[0].split("=")[0] == mask:  # Gender/Number
+                            sentence_temp.append(word.feats.split("|")[0].split("=")[1])  # Append the feature itself (value for Gender/Number etc)
+                            indices.append(i)
+                        #else:
+                        #    sentence_temp.append(word.text)
+                    else:
+                        sentence_temp.append(word.text)
+            masked_sentences.append(" ".join(sentence_temp))
+        indices = list(set(indices))
+
     if mask_type == "ner":
 
         for i in range(len(sentences)):
             sentence = sentences[i]
-            doc = model(sentence)
+            doc = parsed_model[i]
             for ent in doc.ents:
                 if ent.type == mask:
                     sentence = sentence.replace(ent.text, ent.type)
@@ -136,23 +260,28 @@ def mask_text(txt_path, model, mask, mask_type=None):
             indices.append(i)
         indices = list(set(indices))"""
 
+    print('len(masked_sentences)',len(masked_sentences))
+    print('$' * 10)
+
     return masked_sentences, indices
+
 
 def indices_intersection(indices1, indices2):
     indices = list(set(indices1) & set(indices2))
 
     return indices
+
+
 ###########################################################
 # scoring functions
 
-def score_sentence_bleu(reference_path, candidate_path, indices=None, save_score=False):
+def score_sentence_bleu(reference_path, candidate_path, DIR_OUT = None, indices=None, save_score=False):
     """
     reference_path = path to masked (or not masked) references file
-    trans_path = path to masked (or not masked) translations file
+    candidate_path = path to masked (or not masked) translations file
     indices = list of indices of rows containing the mask (intersection/union)
-    return: sentence belu score (sacredbleu, uniform weights for 1-4-grams)
+    return: sentence bleu score (sacredbleu, uniform weights for 1-4-grams)
     """
-    # TODO: add here out directory
 
     # if type(reference_path) == str & type(candidate_path) == str :
     if type(reference_path) == str:
@@ -180,18 +309,23 @@ def score_sentence_bleu(reference_path, candidate_path, indices=None, save_score
         if save_score == True:
             bleu = []
             for i in indices:
-
                 score += sentence_bleu([reference[i].strip().split()], candidate[i].strip().split())
                 bleu.append(sentence_bleu([reference[i].strip().split()], candidate[i].strip().split()))
-            save_pickle(os.path.splitext(reference_path)[0] + "sentence_bleu_scores.txt", bleu)
+                # get filename
+                temp = len(os.path.splitext(reference_path)[0].split(".")[0].split("/"))
+                temp_filename = os.path.splitext(reference_path)[0].split(".")[0].split("/")[temp - 1]
+                print("temp_filename", temp_filename)
+            # save_pickle(DIR_OUT + os.path.splitext(reference_path)[0] + "sentence_bleu_scores.txt", bleu)
+            save_pickle(DIR_OUT + temp_filename + "_sentence_bleu_scores.txt", bleu)
         else:
+            bleu = []
             for i in indices:
                 score += sentence_bleu([reference[i].strip().split()], candidate[i].strip().split())
-
+                bleu.append(sentence_bleu([reference[i].strip().split()], candidate[i].strip().split()))
     score /= len(reference)
     print("The sentence_bleu score is: " + str(score))
 
-    return score
+    return score,bleu
 
 
 def get_bleu_score_from_list(list_bleu, indices=None):
@@ -205,6 +339,67 @@ def get_bleu_score_from_list(list_bleu, indices=None):
         score += list_bleu[i]
 
     return score
+
+def choose_by_bleu(year,DIR_OUT,save_score = False):
+
+    #note: I didn't save the specific system that gave the max bleu, if we want we can add this here
+
+    MYDIR = DIR_OUT + "bleu_scores_" + str(year)
+
+    make_folder(MYDIR)
+
+    bleu_dict = {} #bleu_dict[year][src+trg] = highest bleu score for this lang pair
+    bleu_dict[year] = {}
+    filenames_max_score = []
+
+    #iterate over the files
+    ind_dir = year
+    current_dir = "/cs/snapless/oabend/borgr/SSMT/data/submissions/wmt" + str(ind_dir) + "/plain/"
+    ref_dir = current_dir + "references/"
+    candidate_dir = current_dir + "system-outputs/"
+
+    for filename in os.listdir(ref_dir):
+
+        reference_path = ref_dir + filename
+        filename_new = filename.split("-")
+
+        print("reference_path", reference_path)
+
+        if filename_new[0].split("filename")[0].split("newstest")[1].isnumeric() == True:
+
+            src = filename_new[1][:2]
+            trg = filename_new[1][2:5]
+
+            bleu_dict[year][src + trg] = {}
+            list_bleu_per_pair = []
+            filenames_per_year = []
+
+            if trg == "en":
+
+                ref_list =os.listdir(candidate_dir + filename_new[0] + "/" + src + "-" + trg + "/")
+
+                for current_ref_path in ref_list:
+
+                    current_candidate_path = candidate_dir + filename_new[0] + "/" + src + "-" + trg + "/" + current_ref_path
+
+                    current_bleu_score = score_sentence_bleu(current_ref_path,current_candidate_path,DIR_OUT = None, indices=None, save_score=False)
+                    list_bleu_per_pair.append(current_bleu_score)
+                    filenames_per_year.append(current_ref_path)
+
+                    print("current_ref_path, current_candidate_path, current_bleu_score", current_ref_path,current_candidate_path, current_bleu_score)
+
+            max_bleu = max(list_bleu_per_pair)
+
+            filenames_max_score.append(filenames_per_year[list_bleu_per_pair.index(max(list_bleu_per_pair))]) #filename with highest bleu score per current year
+
+            bleu_dict[year][src+trg] = max_bleu
+
+            if save_score is True:
+                save_pickle(MYDIR + str(year) +"_max_bleu_dict.txt",bleu_dict)
+                save_pickle(MYDIR + str(year) + "_max_bleu_list_filenames.txt", bleu_dict)
+
+
+    return bleu_dict, filenames_per_year
 
 
 def hallucination_score(reference_path, candidate_path, mask, indices=None):
@@ -230,6 +425,7 @@ def hallucination_score(reference_path, candidate_path, mask, indices=None):
         add = 0
         miss = 0
         hit = 0
+        
         for i in indices:
 
             ref_row = word_tokenize(reference[i])
@@ -252,83 +448,194 @@ def hallucination_score(reference_path, candidate_path, mask, indices=None):
 
     return add, miss, hit
 
-###########################################################
+def bleu_from_list(bleu_list,indices):
+
+    score = 0.
+
+    return
+######################################################################################################################
 
 # full process (seperately for pos,ner; later I will join them)
 
-def compute_scores(reference_path,candidate_path,DIR_OUT,model_type,lang,mask_list_path,mask_type=None):
+def compute_scores(reference_path, candidate_path, DIR_OUT, DIR_OUT_TEMP,parsed_model_ref, parsed_model_candidate, model_type, lang, mask_list_path, mask_type=None):
+
+    #note: parsed_model_ref & parsed_model_candidate are dictionaries, they are also saved they can be loaded with pickle
+
     dict_bleu = {}
     dict_hal = {}
-    dict_results= {}
+    dict_results = {}
 
-    ref_sentences = load_sentences(reference_path)
-    candidate_sentences = load_sentences(candidate_path)
+    ref_sentences = load_sentences(reference_path) #not using this
+    candidate_sentences = load_sentences(candidate_path) #not using this
+    print("@@@")
+    print("len(ref_sentences),len(candidate_sentences):",len(ref_sentences),len(candidate_sentences))
+    print("@@@")
 
-    # compute un-masked bleu score & save to file
+    # compute un-masked bleu score
     print("no mask -- score_sentence_bleu: ")
-    bleu_not_masked = score_sentence_bleu(reference_path, candidate_path, indices=None, save_score=True)
-    dict_results["bleu_not_masked"] = bleu_not_masked
-    #####################################
-    # pos
 
-    model = load_model(lang, model_type)
+    bleu_not_masked, bleu_not_masked_list = score_sentence_bleu(reference_path, candidate_path, DIR_OUT, indices=None, save_score=True)
+    dict_results["bleu_not_masked"] = bleu_not_masked
+
     mask_list = load_sentences(mask_list_path)  # TODO: or generate it with get_pos_list func
 
-    print("mask_list", mask_list)  ###
-
-    # compute un-masked bleu score & save to file
-    # score_sentence_bleu(reference_path, candidate_path ,indices=None, save_score = True)
+    print("mask_list", mask_list)
 
     for mask in mask_list:
 
         print("mask_type", mask)
 
-        masked_ref, indices_ref = mask_text(reference_path, model, mask, mask_type)
-        masked_candidate, indices_candidate = mask_text(candidate_path, model, mask, mask_type)
+        masked_ref, indices_ref = mask_text(reference_path, parsed_model_ref, mask, mask_type)
+        masked_candidate, indices_candidate = mask_text(candidate_path, parsed_model_candidate, mask, mask_type)
+
+        print("len(indices_ref),len(indices_candidate): ",len(indices_ref),len(indices_candidate))
+        print("len(masked_ref), len(masked_candidate): ", len(masked_ref), len(masked_candidate))
+
+        #trial #blah
+        save_pickle(DIR_OUT_TEMP+"masked_ref_"+str(mask)+"_"+str(mask_type)+".txt",masked_ref)
+        save_pickle(DIR_OUT_TEMP+ "masked_candidate_" + str(mask) + "_" + str(mask_type) + ".txt",masked_candidate)
+        ################################################################################################################################
+
         indices = indices_intersection(indices_ref, indices_candidate)
 
-        # bleu
-        # TODO: fix the total_bleu_score func. (for now I flagged False, but it should be True to save running time)
-        # total_bleu = total_bleu_score(reference_path, masked_ref, candidate_path,masked_candidate,indices,ref_bleu = False)
+        print("nu. of indices for "+ str(mask), len(indices))
 
-        total_bleu = score_sentence_bleu(masked_ref, masked_candidate, indices, save_score=False) - score_sentence_bleu(ref_sentences, candidate_sentences,indices,save_score=False)  # not using the list here
+        #bleu
+
+        score_masked,_ = score_sentence_bleu(masked_ref, masked_candidate, indices, save_score=False)
+
+        score_not_masked = 0.
+        for i in indices:
+            score_not_masked += bleu_not_masked_list[i]
+        score_not_masked /= len(indices)
+
+        print("score_masked",score_masked)
+        print("score_not_masked",score_not_masked)
+
+        total_bleu = score_masked - score_not_masked
 
         print("total_bleu_score", total_bleu)
         dict_bleu[mask] = total_bleu
 
-        # hallucination
+        #hallucination
         add, miss, hit = hallucination_score(masked_ref, masked_candidate, mask, indices)
         dict_hal[mask] = [add, miss, hit]
 
     dict_results["bleu"] = dict_bleu
     dict_results["hallucination"] = dict_hal
 
-    save_pickle(os.path.splitext(reference_path)[0]+"_"+mask_type + "_results_bleu.txt", dict_results)
+    # get filename
+    temp = len(os.path.splitext(reference_path)[0].split(".")[0].split("/"))
+    temp_filename = os.path.splitext(reference_path)[0].split(".")[0].split("/")[temp - 1]
+    print("temp_filename", temp_filename)
+
+    save_pickle(DIR_OUT + temp_filename + "_" + mask_type + "_results_bleu.txt", dict_results)
 
     print("dict_results:")
     print(dict_results)
 
     return dict_results
 
-###############################################################
 
-# args
-DIR_DATA = "/cs/snapless/oabend/tailin/MT/data/en_trials/"
-DIR_OUT = "/cs/snapless/oabend/tailin/MT/data/en_trials/"
-DIR_DUMP = "/cs/snapless/oabend/tailin/MT/data/en_trials/"
+######################################################################################################################
+######################################################################################################################
+######################################################################################################################
 
-mask_list_path_ner  = DIR_DATA + "ner_full_list.txt"
-mask_list_path_pos = DIR_DATA + "pos_full_list.txt"
+# main
 
-reference_path = DIR_DATA+"refs_long.txt"
-candidate_path = DIR_DATA+"refs_long.txt"
+#ARGS
+DIR_OUT = ".../outputs/20.07.21/"
+DIR_WMT = "/cs/snapless/oabend/borgr/SSMT/data/submissions/"
+DIR_DATA = "/cs/snapless/oabend/tailin/MT/data/"
+DIR_OUT_TEMP = "/cs/snapless/oabend/tailin/MT/NEW/outputs/temp_outputs/"
 
-###############################################################
+mask_list_dict = load_pickle(DIR_OUT + "mask_lists/" + "mask_lists_dict.txt")
 
-#pos
-compute_scores(reference_path,candidate_path,DIR_OUT,model_type="pos",lang = "en",mask_list_path = mask_list_path_pos,mask_type="pos")
+years = [18,19,20]
+mask_types = ["pos","ner","feat"]
+###############################################
+for year in years:
 
-#ner
-compute_scores(reference_path,candidate_path,DIR_OUT,model_type="ner",lang="en",mask_list_path = mask_list_path_ner,mask_type="ner")
+    #compute max bleu score & save (or load if exists)
+
+    MAX_BLEU_PATH = DIR_OUT + "bleu_scores_" + str(year) + "/" + str(year) + "_max_bleu_dict.txt"
+
+    if not os.path.isfile(MAX_BLEU_PATH):
+
+        max_bleu_dict, _ = choose_by_bleu(year, DIR_OUT, save_score=True)
+
+    else:
+
+        max_bleu_dict = load_pickle(MAX_BLEU_PATH)
+
+    for key in max_bleu_dict:
+
+        #key = year
+
+        for src_trg in max_bleu_dict[key]:
+
+            #because of choose_bleu function, the src_lang is always English (atm)
+
+            src_lang = src_trg.split("-")[0]
+            trg_lang = src_trg.split("-")[1]
+
+            if trg_lang == "en":
+
+                print("src_lang,trg_lang",src_lang,trg_lang)
+
+                reference_path = max_bleu_dict[key][src_trg]["path"][0]
+                candidate_path = max_bleu_dict[key][src_trg]["path"][1]
+
+                bleu_not_masked = max_bleu_dict[key][src_trg]["bleu"]
+
+                for mask_type1 in mask_types:
+
+                    #parse dicts
+
+                    DIR_OUT_PARSE = DIR_OUT + "parsed_dicts_stanza/" + str(key) + "/" + mask_type1 + "/"
+
+                    make_folder(DIR_OUT_PARSE)
+
+                    CHECK_FOLDER_REF = os.path.isfile(
+                        DIR_OUT_PARSE + src_lang + "_" + trg_lang + "_dict_parse_ref_" + mask_type1 + ".txt")
+                    CHECK_FOLDER_CAN = os.path.isfile(
+                        DIR_OUT_PARSE + src_lang + "_" + trg_lang + "_dict_parse_candidate_" + mask_type1 + ".txt")
+
+                    if not (CHECK_FOLDER_REF & CHECK_FOLDER_CAN):
+                        print("parsing" + src_lang + "_" + trg_lang + "!")
+
+                        dict_parse_ref_mask = preprocess(reference_path, DIR_OUT_PARSE,
+                                                         src_lang + "_" + trg_lang + "_dict_parse_ref", lang="en",
+                                                         model_type=mask_type1, mask_type=mask_type1, save=True)
+
+                        dict_parse_candidate_mask = preprocess(candidate_path, DIR_OUT_PARSE,
+                                                               src_lang + "_" + trg_lang + "_dict_parse_candidate",
+                                                               lang="en", model_type=mask_type1, mask_type=mask_type1,
+                                                               save=True)
+                    else:
+                        dict_parse_ref_mask = load_pickle(DIR_OUT_PARSE + src_lang + "_" + trg_lang + "_dict_parse_ref_" + mask_type1 + ".txt")
+                        dict_parse_candidate_mask = load_pickle(
+                            DIR_OUT_PARSE + src_lang + "_" + trg_lang + "_dict_parse_candidate_" + mask_type1 + ".txt")
+                        ########################################################################
+
+                    #now we can use the parsed files instead of parsing at each iteration
+                    #compute scores (for each mask_type)
+                    DIR_OUT_FINAL = DIR_OUT + "final_results/"
+                    make_folder(DIR_OUT_FINAL)
+
+                    DIR_OUT_TEMP = DIR_OUT + "temp_results/"
+                    make_folder(DIR_OUT_TEMP)
+
+                    compute_scores(reference_path, candidate_path, DIR_OUT_FINAL, DIR_OUT_TEMP,dict_parse_ref_mask, dict_parse_candidate_mask,
+                                   model_type=mask_type1, lang="en", mask_list_path=mask_list_dict[mask_type1], mask_type=mask_type1)
+
+                    #THE END
+#########################################################################
+
+
+
+
+
+
 
 
