@@ -1,0 +1,9 @@
+Gender
+Number
+Definite
+Gender_NOUN
+Number_NOUN
+Definite_NOUN
+Gender_VERB
+Number_VERB
+Definite_VERB
