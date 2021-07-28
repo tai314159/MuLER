@@ -74,6 +74,14 @@ class Scorer:
         print(f"scores {scores}")
         return np.mean(scores)
 
+    def score_batch(self, batch: list):
+        scores = []
+        for txt in batch:
+            if type(txt) != str:
+                raise RuntimeError('Batch elements should be of type str')
+            scores.append(self.score_text(txt))
+        return np.mean(scores)
+
     def remove_stopwords(self, txt):
         return [word for word in txt if word not in self.stop_words]
 
