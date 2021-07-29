@@ -1,19 +1,31 @@
-import pandas
+import pandas as pd
 import numpy as np
 import os
 import warnings
-
+from collections import defaultdict
+from evaluate import eval
 
 def path2list(filepath):
     """
-    Convert from a file path in standart form (each line is a text item) to a list
+    Convert from a file path in standart form (each line is a text item) to a list of str
+    If filepath is a list of paths, return a list of lists
     """
-    txt_list = []
-    with open(filepath, 'r') as txtfile:
-        for line in txtfile:
-            line = line.rstrip("\n")
-            txt_list.append(line)
-    return txt_list
+    if type(filepath) == str:
+        paths = [filepath]
+    else:
+        paths = filepath
+    txts = []
+    for path in paths:
+        txt_list = []
+        with open(path, 'r') as txtfile:
+            for line in txtfile:
+                line = line.rstrip("\n")
+                txt_list.append(line)
+        txts.append(txt_list)
+    if len(txts) == 1:
+        return txts[0]
+    return txts
+
 
 
 def get_names(possibilities, required, name_mapping=lambda x: x):
@@ -50,11 +62,9 @@ def iterate_submissions(submissions_path, years=None, sources=None, targets=None
     year_names = get_names(possible_years, years,
                            lambda year: 'wmt0' + str(year) if year < 10 else 'wmt' + str(year))
 
-
-    collection = dict()
+    collection = defaultdict(dict)
 
     for year in year_names:
-        collection[year] = dict()
         full_year = '20' + year[-2:]
         candidates_dir = os.path.join(submissions_path, year, 'plain', 'system-outputs')
         references_dir = os.path.join(submissions_path, year, 'plain', 'references')
@@ -63,10 +73,8 @@ def iterate_submissions(submissions_path, years=None, sources=None, targets=None
         if 'newstest' + full_year in os.listdir(candidates_dir):
             candidates_dir = os.path.join(candidates_dir, 'newstest' + full_year)
 
-
         possible_src = map(lambda x: x[:2], os.listdir(candidates_dir))
         possible_trg = map(lambda x: x[-2:], os.listdir(candidates_dir))
-
 
         src_names = get_names(possible_src, sources)
         trg_names = get_names(possible_trg, targets)
@@ -76,22 +84,56 @@ def iterate_submissions(submissions_path, years=None, sources=None, targets=None
             for trg in trg_names:
                 reference_path = None
                 for f in references_files:
-                    if src+trg in f: # todo: previous than 2014 or (int(year[-2:]) < 14 and f.endswith(trg))
+                    if src + trg in f:  # todo: previous than 2014 or (int(year[-2:]) < 14 and f.endswith(trg))
                         reference_path = os.path.join(references_dir, f)
                         break
-                lang_pair = os.path.join(candidates_dir, src+'-'+trg)
+                if reference_path is None:
+                    continue
+                lang_pair = os.path.join(candidates_dir, src + '-' + trg)
                 if not os.path.isdir(lang_pair):
                     continue
-                candidate_paths = list(map(lambda x: os.path.join(lang_pair, x),os.listdir(
+                candidate_paths = list(map(lambda x: os.path.join(lang_pair, x), os.listdir(
                     lang_pair)))
                 collection[year][src, trg] = reference_path, candidate_paths
     return collection
 
+
+def create_database(submissions_path, output_path, metrics=None, years=None, sources=None,
+                    targets=None):
+    paths = iterate_submissions(submissions_path, years, sources, targets)
+    columns = ['year', 'src', 'trg', 'submission', 'sentence_bleu']
+    # for metric in metrics:
+    #     columns.append(metric)
+    database = pd.DataFrame(columns=columns)
+    for year in paths:
+        for src, trg in paths[year]:
+            print('-->', year, src, trg)
+            ref_path, can_paths = paths[year][src, trg]
+
+            ref, cans = path2list(ref_path), path2list(can_paths)
+            results = eval(ref, cans, trg)
+
+            for i, can in enumerate(cans):
+                submission_name = can_paths[i].split('/')[-1]
+                entry = {'year': year, 'src': src, 'trg': trg, 'submission': submission_name}
+                entry.update(results[i])
+                database = database.append(entry, ignore_index=True)
+            break
+    database.to_csv(os.path.join(output_path, 'scores.csv'), index=False)
+
+
 if __name__ == '__main__':
-    collection = iterate_submissions('/cs/snapless/oabend/borgr/SSMT/data/submissions',
+    submissions_path = '/cs/snapless/oabend/borgr/SSMT/data/submissions'
+    collection = iterate_submissions(submissions_path,
                                      targets='en')
     print(len(collection['wmt14']['de', 'en']))
     ref, cans = collection['wmt14']['de', 'en']
     print(ref.split('/')[-1])
     print(cans[0].split('/')[-1])
     print('-')
+    print(collection.keys())
+    print(collection['wmt14']['fr', 'en'][0])
+    print(collection['wmt14']['fr', 'en'][1][0])
+
+    create_database(submissions_path, '/cs/labs/oabend/gal.patel/projects/MT_eval', years=[19],
+                    targets='en')
