@@ -9,7 +9,7 @@ CONCRETENESS_PATH = os.path.join(LEXICON_DIR, "concreteness", "Concreteness_rati
 
 
 class ConcretenessScorer(Scorer):
-    def __init__(self, lang, lexicon_path):
+    def __init__(self, lang, lexicon_path=CONCRETENESS_PATH):
         super().__init__(lang, lexicon_path, score_col=2, filter=lambda row:not row[1].isdigit(), process_row=lambda x:x.lower())
 
     # def file_to_dict(self, lang, lexicon_path, token_col=0, score_col=1, filter):
