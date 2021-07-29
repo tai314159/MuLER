@@ -103,7 +103,7 @@ thinc==7.4.1
 threadpoolctl==2.1.0
 tokenizers==0.8.1rc2
 torch==1.6.0
-torch-nightly==1.2.0.dev20190722
+torch-nightly
 tqdm==4.48.2
 transformers==3.3.1
 tweepy==3.9.0
