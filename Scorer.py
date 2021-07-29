@@ -71,16 +71,23 @@ class Scorer:
         scores = [self.lexicon[word] for word in txt if word in self.lexicon]
         if not scores:
             return 0
-        print(f"scores {scores}")
+        # print(f"scores {scores}")
         return np.mean(scores)
 
-    def score_batch(self, batch: list):
+    def score_batch(self, batch: list, reduce=False):
+        """
+        Get a score for a batch of instances
+        :param batch: list of str sentences
+        :param reduce: wether to return a mean (when True) of a list of scores (when False)
+        """
         scores = []
         for txt in batch:
             if type(txt) != str:
                 raise RuntimeError('Batch elements should be of type str')
             scores.append(self.score_text(txt))
-        return np.mean(scores)
+        if reduce:
+            return np.mean(scores)
+        return np.array(scores)
 
     def remove_stopwords(self, txt):
         return [word for word in txt if word not in self.stop_words]
