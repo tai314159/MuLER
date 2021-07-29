@@ -135,5 +135,5 @@ if __name__ == '__main__':
     print(collection['wmt14']['fr', 'en'][0])
     print(collection['wmt14']['fr', 'en'][1][0])
 
-    create_database(submissions_path, '/cs/labs/oabend/gal.patel/projects/MT_eval', years=[19],
+    create_database(submissions_path, '/cs/labs/oabend/gal.patel/projects/MT_eval', years=19,
                     targets='en')
