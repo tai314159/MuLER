@@ -9,7 +9,7 @@ SENTIMENT_PATH = os.path.join(LEXICON_DIR, "WKWSCISentimentLexicon_v1.1 - WKWSCI
 
 
 class SentimentScorer(Scorer):
-    def __init__(self, lang, lexicon_path):
+    def __init__(self, lang, lexicon_path=SENTIMENT_PATH):
         super().__init__(lang, lexicon_path, "term", "sentiment")
         self.negative_effect_window = 3
         self.negative_words = {"barely", "cease", "hardly", "neither", "no", "non", "not", "nothing", "n't", "prevent",

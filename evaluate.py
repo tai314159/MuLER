@@ -1,99 +1,125 @@
-import pandas
-import numpy as np
-import os
 import warnings
+from concreteness_score import ConcretenessScorer
+from vad_scores import ValenceScorer
+from sentiment_score import SentimentScorer
+import numpy as np
+from masker import score_sentence_bleu
+
+METRICS = ['concreteness', 'sentiment', 'valence']
+MASKING = ["pos", "ner", "feat"]
+LANGS = ['en']
+# nltk.data.path.append('/cs/labs/oabend/gal.patel/virtualenvs/resources')
+import nltk
+
+nltk.download('stopwords',
+              download_dir='/cs/labs/oabend/gal.patel/virtualenvs/mteval-venv/nltk_data')
+nltk.download('punkt', download_dir='/cs/labs/oabend/gal.patel/virtualenvs/mteval-venv/nltk_data')
 
 
-def path2list(filepath):
-    """
-    Convert from a file path in standart form (each line is a text item) to a list
-    """
-    with open(filepath, 'r') as txtfile:
-        for line in txtfile:
-            line = line.rstrip("\n")
-            txt_list.append(line)
-    return txt_list
-
-
-def get_names(possibilities, required, name_mapping=lambda x: x):
-    if required is None:
-        return possibilities
+def get_names(options, queries):
+    if queries is None:
+        return options
     names = []
-    for r in required:
-        name = name_mapping(r)
-        if name in possibilities:
-            names.append(name)
+    for query in queries:
+        if query not in options:
+            warnings.warn(query + ' not found')
+        else:
+            names.append(query)
     return names
 
 
-def iterate_submissions(submissions_path, years=None, sources=None, targets=None):
-    """
-    Iterate over wmt submissions directory and returns pairs of paths for candidate and
-    references files
-    :param submissions_path: root directory for wmt submissions
-    :param years: one or more years, integers between 0-99. If None, return every year that
-    exists
-    :param sources: list of source languages in str. If None, return everything
-    :param targets: list of target languages in str. If None, return everything
-    :return: a dictionary with keys: [year][src, trg] and value a tuple of reference path and a
-    list of all submission paths
-    """
-    if years is not None and type(years) != list:
-        years = [years]
-    if sources is not None and type(sources) != list:
-        sources = [sources]
-    if targets is not None and type(targets) != list:
-        targets = [targets]
-
-    possible_years = filter(lambda x: x.startswith('wmt'), os.listdir(submissions_path))
-    year_names = get_names(possible_years, years,
-                           lambda year: 'wmt0' + str(year) if year < 10 else 'wmt' + str(year))
+def get_methods(lang, metric_names):
+    metric2method = dict()
+    for m in metric_names:
+        if m == 'concreteness':
+            metric2method[m] = ConcretenessScorer(lang)
+        elif m == 'sentiment':
+            metric2method[m] = SentimentScorer(lang)
+        elif m == 'valence':
+            metric2method[m] = ValenceScorer(lang)
+    return metric2method
 
 
-    collection = dict()
+def tailin():
+    for mask_type1 in mask_types:
 
-    for year in year_names:
-        collection[year] = dict()
-        full_year = '20' + year[-2:]
-        candidates_dir = os.path.join(submissions_path, year, 'plain', 'system-outputs')
-        references_dir = os.path.join(submissions_path, year, 'plain', 'references')
+        # parse dicts
 
-        # some has another direstory
-        if 'newstest' + full_year in os.listdir(candidates_dir):
-            candidates_dir = os.path.join(candidates_dir, 'newstest' + full_year)
+        DIR_OUT_PARSE = DIR_OUT + "parsed_dicts_stanza/" + str(key) + "/" + mask_type1 + "/"
 
-        # lang_pairs = map(lambda x: x[len(full_year) + 1:len(full_year) + 5], os.listdir(
-        #     candidates_dir))
-        possible_src = map(lambda x: x[:2], os.listdir(
-            candidates_dir))
-        possible_trg = map(lambda x: x[-2:], os.listdir(
-            candidates_dir))
-        print(possible_src, possible_trg)
+        make_folder(DIR_OUT_PARSE)
 
-        src_names = get_names(possible_src, sources)
-        trg_names = get_names(possible_trg, targets)
-        references_files = os.listdir(references_dir)
+        CHECK_FOLDER_REF = os.path.isfile(
+            DIR_OUT_PARSE + src_lang + "_" + trg_lang + "_dict_parse_ref_" + mask_type1 + ".txt")
+        CHECK_FOLDER_CAN = os.path.isfile(
+            DIR_OUT_PARSE + src_lang + "_" + trg_lang + "_dict_parse_candidate_" + mask_type1 + ".txt")
 
-        for src in src_names:
-            for trg in trg_names:
-                reference_path = None
-                for f in references_files:
-                    if src+trg in f: # todo: previous than 2014
-                        reference_path = os.path.join(references_dir, f)
-                        break
-                lang_pair = os.path.join(candidates_dir, src+'-'+trg)
-                if not os.path.isdir(lang_pair):
-                    continue
-                candidate_paths = list(map(lambda x: os.path.join(lang_pair, x),os.listdir(
-                    lang_pair)))
-                collection[year][src, trg] = reference_path, candidate_paths
-    return collection
+        if not (CHECK_FOLDER_REF & CHECK_FOLDER_CAN):
+            print("parsing" + src_lang + "_" + trg_lang + "!")
 
-if __name__ == '__main__':
-    collection = iterate_submissions('/cs/snapless/oabend/borgr/SSMT/data/submissions',
-                                     targets='en')
-    print(len(collection['wmt14']['de', 'en']))
-    ref, cans = collection['wmt14']['de', 'en']
-    print(ref.split('/')[-1])
-    print(cans[0].split('/')[-1])
-    print('-')
+            dict_parse_ref_mask = preprocess(reference_path, DIR_OUT_PARSE,
+                                             src_lang + "_" + trg_lang + "_dict_parse_ref",
+                                             lang="en",
+                                             model_type=mask_type1, mask_type=mask_type1, save=True)
+
+            dict_parse_candidate_mask = preprocess(candidate_path, DIR_OUT_PARSE,
+                                                   src_lang + "_" + trg_lang + "_dict_parse_candidate",
+                                                   lang="en", model_type=mask_type1,
+                                                   mask_type=mask_type1,
+                                                   save=True)
+        else:
+            dict_parse_ref_mask = load_pickle(
+                DIR_OUT_PARSE + src_lang + "_" + trg_lang + "_dict_parse_ref_" + mask_type1 + ".txt")
+            dict_parse_candidate_mask = load_pickle(
+                DIR_OUT_PARSE + src_lang + "_" + trg_lang + "_dict_parse_candidate_" + mask_type1 + ".txt")
+            ########################################################################
+
+        # now we can use the parsed files instead of parsing at each iteration
+        # compute scores (for each mask_type)
+        DIR_OUT_FINAL = DIR_OUT + "final_results/"
+        make_folder(DIR_OUT_FINAL)
+
+        DIR_OUT_TEMP = DIR_OUT + "temp_results/"
+        make_folder(DIR_OUT_TEMP)
+
+        # note: parsed_model_ref & parsed_model_candidate are dictionaries, they are also saved they can be loaded with pickle
+        compute_scores(reference_path, candidate_path, DIR_OUT_FINAL, DIR_OUT_TEMP,
+                       dict_parse_ref_mask,  # preprocessed
+                       dict_parse_candidate_mask,
+                       model_type=mask_type1, lang="en",
+                       mask_list_path=mask_list_dict[mask_type1], # what to mask (ie noun)
+                       mask_type=mask_type1)
+
+        # THE END
+
+
+def eval(references, candidates, lang='en', metric_names=None, masking=None):
+    if lang not in LANGS:
+        raise RuntimeError(lang + ' not supported')
+    if len(candidates) and type(candidates[0]) != list:
+        candidates = [candidates]
+
+    metric_names = get_names(METRICS, metric_names)
+    maskings = get_names(MASKING, masking)
+
+    # compute for references
+    ref_metircs = {}
+    metric2method = get_methods(lang, metric_names)
+    for m in metric_names:
+        ref_metircs[m] = metric2method[m].score_batch(references)
+
+    candidates_metrics = []
+    for i, can in enumerate(candidates):
+        if len(references) != len(can):
+            raise RuntimeError('candidate list ' + str(i) + ' does not match references in length')
+        can_metrics = dict()
+        can_metrics['sentence_bleu'], _ = score_sentence_bleu(references, can)
+        for m in metric_names:
+            can_metrics[m + '_diff'] = np.mean(
+                np.abs(metric2method[m].score_batch(can) - ref_metircs[
+                    m]))
+        candidates_metrics.append(can_metrics)
+
+    if len(candidates_metrics) == 1:
+        return candidates_metrics[0]
+    return candidates_metrics

@@ -9,7 +9,7 @@ VAD_PATH = os.path.join(LEXICON_DIR, "NRC-VAD-Lexicon-Aug2018Release", "NRC-VAD-
 
 
 class ValenceScorer(Scorer):
-    def __init__(self, lang, lexicon_path):
+    def __init__(self, lang, lexicon_path=VAD_PATH):
         super().__init__(lang, lexicon_path, filter=lambda row:not is_float(row[1]))
 
 
