@@ -73,34 +73,42 @@ def score_by_year(data_path, score_name, src=None, trg='en',
                   best_bleu=False):
     save_dir = os.path.join(save_dir, score2dir(score_name))
     os.makedirs(save_dir, exist_ok=True)
-    data = get_data(data_path)
-    for src_lang in get_lang(src, data, 'src'):
-        for trg_lang in get_lang(trg, data, 'trg'):
-            data = data[data['src'] == src_lang]
+    all_data = get_data(data_path)
+    for src_lang in get_lang(src, all_data, 'src'):
+        for trg_lang in get_lang(trg, all_data, 'trg'):
+            data = all_data[all_data['src'] == src_lang]
             data = data[data['trg'] == trg_lang]
 
 
             years = np.unique(data['year'])
-            res = defaultdict(list)
+            res_score = defaultdict(list)
+            res_year = defaultdict(list)
             names, score_columns = get_column_names(score_name, data.columns)
             for year in years:
                 data_year = data[data['year'] == year]
+                if data_year.empty:
+                    continue
+
                 if best_bleu:
                     data_year = data_year.loc[data_year['bleu'].idxmax()]  # todo really names 'bleu'?
                 for name, col_name in zip(names, score_columns):
+                    res_year[name].append(year)
                     if type(col_name) is list:  # the score is a sum of columns
                         total = 0
                         for c in col_name:
                             total += data_year.loc[data_year[c].idxmax()][c]
-                        res[name].append(total)
+                        res_score[name].append(total)
                     else:
-                        res[name].append(data_year.loc[data_year[col_name].idxmax()][col_name])
+                        res_score[name].append(data_year.loc[data_year[col_name].idxmax()][col_name])
             for name in names:
-                plt.plot(years, np.array(res[name]), label=name)
+                if len(res_year[name]) == 1:
+                    plt.scatter(res_year[name], np.array(res_score[name]), label=name)
+                elif len(res_year[name]) > 1:
+                    plt.plot(res_year[name], np.array(res_score[name]), label=name)
             plt.xlabel('year')
             plt.ylabel('score')
-            # plt.suptitle(name_map[corr_type])
-            plt.title(score_name)
+            plt.suptitle(score_name)
+            plt.title(src_lang + trg_lang)
             plt.legend(loc=0)
             by = 'best_bleu' if best_bleu else 'best_score'
             plt.savefig(os.path.join(save_dir, src_lang + trg_lang + '_' + by + '.png'),
