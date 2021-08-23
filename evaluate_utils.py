@@ -118,22 +118,22 @@ def create_database(submissions_path, output_path, metrics=None, years=None, sou
                 entry = {'year': year, 'src': src, 'trg': trg, 'submission': submission_name}
                 entry.update(results[i])
                 database = database.append(entry, ignore_index=True)
-            break
-    database.to_csv(os.path.join(output_path, 'scores.csv'), index=False)
+            # break
+    database.to_csv(os.path.join(output_path, 'scores_metrics.csv'), index=False)
 
 
 if __name__ == '__main__':
     submissions_path = '/cs/snapless/oabend/borgr/SSMT/data/submissions'
-    collection = iterate_submissions(submissions_path,
-                                     targets='en')
-    print(len(collection['wmt14']['de', 'en']))
-    ref, cans = collection['wmt14']['de', 'en']
-    print(ref.split('/')[-1])
-    print(cans[0].split('/')[-1])
-    print('-')
-    print(collection.keys())
-    print(collection['wmt14']['fr', 'en'][0])
-    print(collection['wmt14']['fr', 'en'][1][0])
+    # collection = iterate_submissions(submissions_path,
+    #                                  targets='en')
+    # print(len(collection['wmt14']['de', 'en']))
+    # ref, cans = collection['wmt14']['de', 'en']
+    # print(ref.split('/')[-1])
+    # print(cans[0].split('/')[-1])
+    # print('-')
+    # print(collection.keys())
+    # print(collection['wmt14']['fr', 'en'][0])
+    # print(collection['wmt14']['fr', 'en'][1][0])
 
-    create_database(submissions_path, '/cs/labs/oabend/gal.patel/projects/MT_eval', years=19,
+    create_database(submissions_path, '/cs/labs/oabend/gal.patel/projects/MT_eval', years=None,
                     targets='en')

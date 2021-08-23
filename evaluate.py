@@ -1,11 +1,11 @@
 import warnings
 from concreteness_score import ConcretenessScorer
-from vad_scores import ValenceScorer
+from vad_scores import ValenceScorer, DominanceScorer, ArousalScorer
 from sentiment_score import SentimentScorer
 import numpy as np
 from masker import score_sentence_bleu
 
-METRICS = ['concreteness', 'sentiment', 'valence']
+METRICS = ['concreteness', 'sentiment', 'valence', 'dominance', 'arousal']
 MASKING = ["pos", "ner", "feat"]
 LANGS = ['en']
 # nltk.data.path.append('/cs/labs/oabend/gal.patel/virtualenvs/resources')
@@ -37,6 +37,10 @@ def get_methods(lang, metric_names):
             metric2method[m] = SentimentScorer(lang)
         elif m == 'valence':
             metric2method[m] = ValenceScorer(lang)
+        elif m == 'dominance':
+            metric2method[m] = DominanceScorer(lang)
+        elif m == 'arousal':
+            metric2method[m] = ArousalScorer(lang)
     return metric2method
 
 
@@ -110,14 +114,18 @@ def eval(references, candidates, lang='en', metric_names=None, masking=None):
 
     candidates_metrics = []
     for i, can in enumerate(candidates):
-        if len(references) != len(can):
-            raise RuntimeError('candidate list ' + str(i) + ' does not match references in length')
         can_metrics = dict()
-        can_metrics['sentence_bleu'], _ = score_sentence_bleu(references, can)
-        for m in metric_names:
-            can_metrics[m + '_diff'] = np.mean(
-                np.abs(metric2method[m].score_batch(can) - ref_metircs[
-                    m]))
+        if len(references) != len(can):
+            # raise RuntimeError('candidate list ' + str(i) + ' does not match references in length')
+            can_metrics['bleu'] = 0
+            for m in metric_names:
+                can_metrics[m + '_diff'] = float('inf')
+        else:
+            can_metrics['bleu'], _ = score_sentence_bleu(references, can)
+            for m in metric_names:
+                can_metrics[m + '_diff'] = np.mean(
+                    np.abs(metric2method[m].score_batch(can) - ref_metircs[
+                        m]))
         candidates_metrics.append(can_metrics)
 
     if len(candidates_metrics) == 1:
