@@ -3,8 +3,14 @@ from concreteness_score import ConcretenessScorer
 from vad_scores import ValenceScorer, DominanceScorer, ArousalScorer
 from sentiment_score import SentimentScorer
 import numpy as np
-from masker import score_sentence_bleu
+# from masker import score_sentence_bleu
+from compute_scores_020921 import score_sentence_bleu
+from compute_scores_020921 import run_main as run_mask
+import os
+import sys
 
+RUN_CACHE = 'run_cache'
+os.makedirs(RUN_CACHE, exist_ok=True)
 METRICS = ['concreteness', 'sentiment', 'valence', 'dominance', 'arousal']
 MASKING = ["pos", "ner", "feat"]
 LANGS = ['en']
@@ -91,7 +97,7 @@ def tailin():
                        dict_parse_ref_mask,  # preprocessed
                        dict_parse_candidate_mask,
                        model_type=mask_type1, lang="en",
-                       mask_list_path=mask_list_dict[mask_type1], # what to mask (ie noun)
+                       mask_list_path=mask_list_dict[mask_type1],  # what to mask (ie noun)
                        mask_type=mask_type1)
 
         # THE END
@@ -105,6 +111,14 @@ def eval(references, candidates, lang='en', metric_names=None, masking=None):
 
     metric_names = get_names(METRICS, metric_names)
     maskings = get_names(MASKING, masking)
+    # masking_res = dict()
+    # for mask in maskings:
+    #     masking_res[mask] = run_mask('mask_out', '20.07.21/mask_lists/'+mask+'_full_list.txt',
+    #                                  references,
+    #                                  candidates,
+    #                                  mask, run_all=True)
+    # print(masking_res[mask][0]['bleu'].keys())
+    # sys.exit()
 
     # compute for references
     ref_metircs = {}
@@ -113,21 +127,56 @@ def eval(references, candidates, lang='en', metric_names=None, masking=None):
         ref_metircs[m] = metric2method[m].score_batch(references)
 
     candidates_metrics = []
+    # discard_ids = []
+    new_candidates = []
     for i, can in enumerate(candidates):
         can_metrics = dict()
         if len(references) != len(can):
+            # print('found', i)
             # raise RuntimeError('candidate list ' + str(i) + ' does not match references in length')
-            can_metrics['bleu'] = 0
-            for m in metric_names:
-                can_metrics[m + '_diff'] = float('inf')
+            # discard_ids.append(i)
+            continue
+            # can_metrics['bleu'] = 0
+            # for m in metric_names:
+            #     can_metrics[m + '_diff'] = float('inf')
         else:
+            new_candidates.append(can)
             can_metrics['bleu'], _ = score_sentence_bleu(references, can)
             for m in metric_names:
                 can_metrics[m + '_diff'] = np.mean(
                     np.abs(metric2method[m].score_batch(can) - ref_metircs[
                         m]))
-        candidates_metrics.append(can_metrics)
 
+        candidates_metrics.append(can_metrics)
+    mask_metrics = []
+    # new_candidates = []
+    # for i in range(len(candidates)):
+    #     if i not in discard_ids:
+    #         new_candidates.append(candidates[i])
+    # print('candidates:', len(candidates))
+    # print('new_candidates:', len(new_candidates))
+    candidates = new_candidates
+    # for i, can in enumerate(candidates):
+    #     if len(can) != len(references):
+    #         print('FOUND', i)
+
+    try:
+        for mask in maskings:
+            res = run_mask(RUN_CACHE + '/', '20.07.21/mask_lists/' + mask + '_full_list.txt',
+                           references,
+                           candidates,
+                           mask, run_all=True)
+            # mask_res = dict()
+            # for k in res:
+            #     mask_res[mask.upper() + '_' + k] = res[k]
+            # mask_metrics.append(mask_res)
+            for i, can in enumerate(candidates_metrics):
+                mask_res = res[i]
+                for score in ['bleu', 'hallucination']:
+                    for k in mask_res[score]:
+                        can[mask.upper() + '_' + k + '_' + score] = mask_res[score][k]
+    except:
+        print('FAILURE OCCURED')
     if len(candidates_metrics) == 1:
         return candidates_metrics[0]
     return candidates_metrics
