@@ -5,6 +5,9 @@ import warnings
 from collections import defaultdict
 from evaluate import eval
 
+DISCARD = {'newstest2020.de-en.yolo.1052.txt'}
+
+
 def path2list(filepath):
     """
     Convert from a file path in standart form (each line is a text item) to a list of str
@@ -25,7 +28,6 @@ def path2list(filepath):
     if len(txts) == 1:
         return txts[0]
     return txts
-
 
 
 def get_names(possibilities, required, name_mapping=lambda x: x):
@@ -94,9 +96,21 @@ def iterate_submissions(submissions_path, years=None, sources=None, targets=None
                     continue
                 candidate_paths = list(map(lambda x: os.path.join(lang_pair, x), os.listdir(
                     lang_pair)))
+                candidate_paths = list(filter(lambda x: x.split('/')[-1] not in DISCARD,
+                                              candidate_paths))
                 collection[year][src, trg] = reference_path, candidate_paths
     return collection
 
+def get_exist(output_path, output_name='scores_metrics_full1.csv'):
+    exist = set()
+    file_name = os.path.join(output_path, output_name)
+    if not os.path.isfile(file_name):
+        return exist
+    df = pd.read_csv(file_name)
+
+    for i, row in df.iterrows():
+        exist.add((row['year'], row['src'], row['trg']))
+    return exist
 
 def create_database(submissions_path, output_path, metrics=None, years=None, sources=None,
                     targets=None):
@@ -105,12 +119,18 @@ def create_database(submissions_path, output_path, metrics=None, years=None, sou
     # for metric in metrics:
     #     columns.append(metric)
     database = pd.DataFrame(columns=columns)
+    exist = get_exist(output_path)
     for year in paths:
         for src, trg in paths[year]:
+            if (year, src, trg) in exist:
+                print('skip', year, src, trg)
+                continue
             print('-->', year, src, trg)
             ref_path, can_paths = paths[year][src, trg]
 
             ref, cans = path2list(ref_path), path2list(can_paths)
+            # for i, p in enumerate(can_paths):
+            #     print(i, p.split('/')[-1])
             results = eval(ref, cans, trg)
 
             for i, can in enumerate(cans):
@@ -118,22 +138,23 @@ def create_database(submissions_path, output_path, metrics=None, years=None, sou
                 entry = {'year': year, 'src': src, 'trg': trg, 'submission': submission_name}
                 entry.update(results[i])
                 database = database.append(entry, ignore_index=True)
-            break
-    database.to_csv(os.path.join(output_path, 'scores.csv'), index=False)
+            # break
+            database.to_csv(os.path.join(output_path, 'scores_metrics_full.csv'), index=False)
+        print('done year', year)
+    database.to_csv(os.path.join(output_path, 'scores_metrics_full.csv'), index=False)
 
 
 if __name__ == '__main__':
     submissions_path = '/cs/snapless/oabend/borgr/SSMT/data/submissions'
-    collection = iterate_submissions(submissions_path,
-                                     targets='en')
-    print(len(collection['wmt14']['de', 'en']))
-    ref, cans = collection['wmt14']['de', 'en']
-    print(ref.split('/')[-1])
-    print(cans[0].split('/')[-1])
-    print('-')
-    print(collection.keys())
-    print(collection['wmt14']['fr', 'en'][0])
-    print(collection['wmt14']['fr', 'en'][1][0])
+    # collection = iterate_submissions(submissions_path,
+    #                                  targets='en')
+    # print(len(collection['wmt14']['de', 'en']))
+    # ref, cans = collection['wmt14']['de', 'en']
+    # print(ref.split('/')[-1])
+    # print(cans[0].split('/')[-1])
+    # print('-')
+    # print(collection.keys())
+    # print(collection['wmt14']['fr', 'en'][0])
+    # print(collection['wmt14']['fr', 'en'][1][0])
 
-    create_database(submissions_path, '/cs/labs/oabend/gal.patel/projects/MT_eval', years=19,
-                    targets='en')
+    create_database(submissions_path, '/cs/labs/oabend/gal.patel/projects/MT_eval', targets='en')
