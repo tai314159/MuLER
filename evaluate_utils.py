@@ -96,33 +96,69 @@ def iterate_submissions(submissions_path, years=None, sources=None, targets=None
                     continue
                 candidate_paths = list(map(lambda x: os.path.join(lang_pair, x), os.listdir(
                     lang_pair)))
-                candidate_paths = list(filter(lambda x: x.split('/')[-1] not in DISCARD,
-                                              candidate_paths))
+                # candidate_paths = list(filter(lambda x: x.split('/')[-1] not in DISCARD,
+                #                               candidate_paths))
                 collection[year][src, trg] = reference_path, candidate_paths
     return collection
 
-def get_exist(output_path, output_name='scores_metrics_full1.csv'):
+def get_exist(output_path, output_names=[]):
+    output_names = ['scores_metrics_full1.csv',
+                    'scores_metrics_full2.csv']
     exist = set()
-    file_name = os.path.join(output_path, output_name)
-    if not os.path.isfile(file_name):
-        return exist
-    df = pd.read_csv(file_name)
-
-    for i, row in df.iterrows():
-        exist.add((row['year'], row['src'], row['trg']))
+    for output_name in output_names:
+        file_name = os.path.join(output_path, output_name)
+        if not os.path.isfile(file_name):
+            continue
+        df = pd.read_csv(file_name)
+        for i, row in df.iterrows():
+            exist.add((row['year'], row['src'], row['trg']))
     return exist
 
+def merge_exist(output_path):
+    output_names = ['scores_metrics_full1.csv',
+                    'scores_metrics_full2.csv',
+                    'scores_metrics_full3.csv']
+    missing = set()
+    merged = None
+    for output_name in output_names:
+        file_name = os.path.join(output_path, output_name)
+        if not os.path.isfile(file_name):
+            continue
+        df = pd.read_csv(file_name)
+        if merged is None:
+            merged = pd.DataFrame(columns=df.columns)
+        for i, row in df.iterrows():
+            if pd.isna(row['FEAT_Definite_hallucination']):
+                missing.add((row['year'], row['src'], row['trg']))
+            else:
+                merged.append(row, ignore_index=True)
+    merged.to_csv(os.path.join(output_path, 'scores_metrics_merged.csv'), index=False)
+    import pickle
+    with open(os.path.join(output_path, 'missing.p'), 'wb') as f:
+        pickle.dump(missing, f)
+    print('MISSING\n', missing)
+
+def get_missing(output_path):
+    import pickle
+    with open(os.path.join(output_path, 'missing.p'), 'rb') as f:
+        missing = pickle.load(f)
+    return missing
+
 def create_database(submissions_path, output_path, metrics=None, years=None, sources=None,
-                    targets=None):
+                    targets=None, only_missing=False):
     paths = iterate_submissions(submissions_path, years, sources, targets)
     columns = ['year', 'src', 'trg', 'submission', 'sentence_bleu']
     # for metric in metrics:
     #     columns.append(metric)
     database = pd.DataFrame(columns=columns)
     exist = get_exist(output_path)
+    missing = get_missing(output_path)
     for year in paths:
         for src, trg in paths[year]:
-            if (year, src, trg) in exist:
+            if only_missing:
+                if (year, src, trg) not in missing:
+                    continue
+            elif (year, src, trg) in exist:
                 print('skip', year, src, trg)
                 continue
             print('-->', year, src, trg)
@@ -132,6 +168,11 @@ def create_database(submissions_path, output_path, metrics=None, years=None, sou
             # for i, p in enumerate(can_paths):
             #     print(i, p.split('/')[-1])
             results = eval(ref, cans, trg)
+            if len(results) != len(cans):
+                print('UNMATCHED results&cans')
+                database = database.append({'year': year, 'src': src, 'trg': trg},
+                                           ignore_index=True)
+                continue
 
             for i, can in enumerate(cans):
                 submission_name = can_paths[i].split('/')[-1]
@@ -146,6 +187,7 @@ def create_database(submissions_path, output_path, metrics=None, years=None, sou
 
 if __name__ == '__main__':
     submissions_path = '/cs/snapless/oabend/borgr/SSMT/data/submissions'
+
     # collection = iterate_submissions(submissions_path,
     #                                  targets='en')
     # print(len(collection['wmt14']['de', 'en']))
@@ -157,4 +199,6 @@ if __name__ == '__main__':
     # print(collection['wmt14']['fr', 'en'][0])
     # print(collection['wmt14']['fr', 'en'][1][0])
 
-    create_database(submissions_path, '/cs/labs/oabend/gal.patel/projects/MT_eval', targets='en')
+    create_database(submissions_path, '/cs/labs/oabend/gal.patel/projects/MT_eval', targets='en',
+                    only_missing=True)
+    # merge_exist('/cs/labs/oabend/gal.patel/projects/MT_eval')

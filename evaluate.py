@@ -4,8 +4,8 @@ from vad_scores import ValenceScorer, DominanceScorer, ArousalScorer
 from sentiment_score import SentimentScorer
 import numpy as np
 # from masker import score_sentence_bleu
-from compute_scores_020921 import score_sentence_bleu
-from compute_scores_020921 import run_main as run_mask
+from compute_scores_200921 import score_sentence_bleu
+from compute_scores_200921 import run_main as run_mask
 import os
 import sys
 
@@ -165,7 +165,7 @@ def eval(references, candidates, lang='en', metric_names=None, masking=None):
             res = run_mask(RUN_CACHE + '/', '20.07.21/mask_lists/' + mask + '_full_list.txt',
                            references,
                            candidates,
-                           mask, run_all=True)
+                           mask, run_all=True, score_type='bleu')
             # mask_res = dict()
             # for k in res:
             #     mask_res[mask.upper() + '_' + k] = res[k]

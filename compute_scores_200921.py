@@ -807,16 +807,16 @@ def run_main(DIR_OUT, mask_list_path, ref_input, candidates_input, mask_type, tr
 
 #usage example
 
-DIR_OUT = "/cs/snapless/oabend/tailin/MT/NEW/outputs/11.08.21/" #CHANGE
-
-#summarization
-ref_input = "/cs/snapless/oabend/tailin/MT/MT_eval/summarization_data/ref/test.target.ref.txt" #ref_input is NOT A LIST.
-candidates_input = ["/cs/snapless/oabend/tailin/MT/MT_eval/summarization_data/candidates/t5_base_zs.txt"] #candidates_outputs MUST BE A LIST !
-
-mask_types = ["pos","feat","ner"]
-
-for mask_type in mask_types:
-    mask_list_path = "/cs/snapless/oabend/tailin/MT/NEW/codes/trial_data/" + mask_type + "_mask_list.txt"
-    result = run_main(DIR_OUT, mask_list_path, ref_input, candidates_input,mask_type, trg_lang = "en",max_bleu_dict_path = None, run_all = False, score_type = "rouge")
-    print("result")
-    print(result)
+# DIR_OUT = "/cs/snapless/oabend/tailin/MT/NEW/outputs/11.08.21/" #CHANGE
+#
+# #summarization
+# ref_input = "/cs/snapless/oabend/tailin/MT/MT_eval/summarization_data/ref/test.target.ref.txt" #ref_input is NOT A LIST.
+# candidates_input = ["/cs/snapless/oabend/tailin/MT/MT_eval/summarization_data/candidates/t5_base_zs.txt"] #candidates_outputs MUST BE A LIST !
+#
+# mask_types = ["pos","feat","ner"]
+#
+# for mask_type in mask_types:
+#     mask_list_path = "/cs/snapless/oabend/tailin/MT/NEW/codes/trial_data/" + mask_type + "_mask_list.txt"
+#     result = run_main(DIR_OUT, mask_list_path, ref_input, candidates_input,mask_type, trg_lang = "en",max_bleu_dict_path = None, run_all = False, score_type = "rouge")
+#     print("result")
+#     print(result)
