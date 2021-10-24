@@ -4,13 +4,13 @@ from vad_scores import ValenceScorer, DominanceScorer, ArousalScorer
 from sentiment_score import SentimentScorer
 import numpy as np
 # from masker import score_sentence_bleu
-from compute_scores_200921 import score_sentence_bleu
-from compute_scores_200921 import run_main as run_mask
+from compute_scores_171021 import score_sentence_bleu
+from compute_scores_171021 import run_main as run_mask
 import os
 import sys
 
-RUN_CACHE = 'run_cache'
-os.makedirs(RUN_CACHE, exist_ok=True)
+# RUN_CACHE = 'run_cache'
+# os.makedirs(RUN_CACHE, exist_ok=True)
 METRICS = ['concreteness', 'sentiment', 'valence', 'dominance', 'arousal']
 MASKING = ["pos", "ner", "feat"]
 LANGS = ['en']
@@ -21,6 +21,26 @@ nltk.download('stopwords',
               download_dir='/cs/labs/oabend/gal.patel/virtualenvs/mteval-venv/nltk_data')
 nltk.download('punkt', download_dir='/cs/labs/oabend/gal.patel/virtualenvs/mteval-venv/nltk_data')
 
+def path2list(filepath, return_list_always=False):
+    """
+    Convert from a file path in standart form (each line is a text item) to a list of str
+    If filepath is a list of paths, return a list of lists
+    """
+    if type(filepath) == str:
+        paths = [filepath]
+    else:
+        paths = filepath
+    txts = []
+    for path in paths:
+        txt_list = []
+        with open(path, 'r') as txtfile:
+            for line in txtfile:
+                line = line.rstrip("\n")
+                txt_list.append(line)
+        txts.append(txt_list)
+    if len(txts) == 1 and not return_list_always:
+        return txts[0]
+    return txts
 
 def get_names(options, queries):
     if queries is None:
@@ -103,12 +123,21 @@ def tailin():
         # THE END
 
 
-def eval(references, candidates, lang='en', metric_names=None, masking=None):
+def eval_muler(references, candidates, lang='en', metric_names=None, masking=None, cache_dir=None,
+               are_paths=True, always_return_list=True):
     if lang not in LANGS:
         raise RuntimeError(lang + ' not supported')
-    if len(candidates) and type(candidates[0]) != list:
+    if (not are_paths) and len(candidates) and type(candidates[0]) != list:
         candidates = [candidates]
-
+    if are_paths:
+        ref_path = references
+        can_paths = candidates
+        # print('>>', type(can_paths), len(can_paths), type(can_paths[0]))
+        # print('>>', type(ref_path))
+        references = path2list(ref_path)
+        candidates = path2list(can_paths, return_list_always=True)
+    if cache_dir is not None:
+        os.makedirs(cache_dir, exist_ok=True)
     metric_names = get_names(METRICS, metric_names)
     maskings = get_names(MASKING, masking)
     # masking_res = dict()
@@ -162,10 +191,17 @@ def eval(references, candidates, lang='en', metric_names=None, masking=None):
 
     try:
         for mask in maskings:
-            res = run_mask(RUN_CACHE + '/', '20.07.21/mask_lists/' + mask + '_full_list.txt',
-                           references,
-                           candidates,
-                           mask, run_all=True, score_type='bleu')
+            # mask_list_path = RUN_CACHE + '/',
+            # '20.07.21/mask_lists/' + mask +
+            # '_full_list.txt',
+            # ref_input = ref_path,
+            # candidates_input = can_paths,
+            # mask_type = mask, run_all = True, score_type = 'bleu', DIR_OUT = cache_dir
+
+            res = run_mask(mask_list_path ='20.07.21/mask_lists/' + mask + '_full_list.txt',
+                           ref_input = ref_path,
+                           candidates_input=can_paths,
+                           mask_type=mask, run_all=True, score_type='bleu', DIR_OUT=cache_dir)
             # mask_res = dict()
             # for k in res:
             #     mask_res[mask.upper() + '_' + k] = res[k]
@@ -175,8 +211,9 @@ def eval(references, candidates, lang='en', metric_names=None, masking=None):
                 for score in ['bleu', 'hallucination']:
                     for k in mask_res[score]:
                         can[mask.upper() + '_' + k + '_' + score] = mask_res[score][k]
-    except:
+    except Exception as e:
         print('FAILURE OCCURED')
-    if len(candidates_metrics) == 1:
+        print(e)
+    if (not always_return_list) and len(candidates_metrics) == 1:
         return candidates_metrics[0]
     return candidates_metrics

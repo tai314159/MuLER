@@ -9,7 +9,8 @@ import random
 from datetime import datetime
 from rouge_score import rouge_scorer
 
-CACHE = '/cs/snapless/oabend/tailin/MT/NEW/cache/'
+# CACHE = '/cs/snapless/oabend/tailin/MT/NEW/cache/'
+CACHE = '/cs/snapless/oabend/gal.patel/stanza'
 
 #add: deal with files with empty lines (in mask_text)
 
@@ -59,7 +60,7 @@ def load_sentences(filepath):
     temp_list = []
     # with open(filepath, 'r', encoding="utf-8") as txtfile: #switched 'r' to 'rb'
 
-    ##print("filepath",filepath)
+    ### pring("filepath",filepath)
 
     with open(filepath, 'r') as txtfile:
         for line in txtfile:
@@ -81,12 +82,12 @@ def load_ref_candidates(ref, candidates):
         candidate = candidates  # list of lists of sentences
 
     else:
-        ##print("candidates",candidates) ###
+        ### pring("candidates",candidates) ###
 
         candidate = []
         for i in range(len(candidates)):
-            ##print("i",i) ###
-            ##print("candidates[i]", candidates[i]) ###
+            ### pring("i",i) ###
+            ### pring("candidates[i]", candidates[i]) ###
             candidate.append(load_sentences(candidates[i]))
 
     return reference, candidate
@@ -105,8 +106,8 @@ def count_lines(filepath):
         if i:
             Counter += 1
 
-    ##print("This is the number of lines in the file")
-    ##print(Counter)
+    ### pring("This is the number of lines in the file")
+    ### pring(Counter)
 
     return Counter
 
@@ -130,10 +131,10 @@ def make_folder(MYDIR):
     # If folder doesn't exist, then create it.
     if not CHECK_FOLDER:
         os.makedirs(MYDIR)
-        # print("created folder : ", MYDIR)
+        # # pring("created folder : ", MYDIR)
 
     # else:
-    #     print(MYDIR, "folder already exists.")
+    #     # pring(MYDIR, "folder already exists.")
 
     return
 
@@ -215,7 +216,7 @@ def get_mask_list(txt_path, model_type, lang):
         for i in range(len(sentences)):
             doc = model(sentences[i])
             # for ent in doc.ents:
-            #     print("ent.type", ent.type)
+            #     # pring("ent.type", ent.type)
             # mask_list.append(str(ent.type))
 
         # mask_list = list(set(mask_list))
@@ -255,13 +256,13 @@ def mask_text(txt_path, parsed_model, mask, mask_type=None):
             doc = parsed_model[i]
 
             if not sentences[i]:
-                #print("empty str")
+                ## pring("empty str")
                 sentence_temp = []
                 masked_sentences.append(" ".join(sentence_temp))
             else:
-                #print("not empty str")
+                ## pring("not empty str")
                 for sent in doc.sentences:
-                    ##print("sent",sent) ##
+                    ### pring("sent",sent) ##
 
                     sentence_temp = []
                     for word in sent.words:
@@ -279,11 +280,11 @@ def mask_text(txt_path, parsed_model, mask, mask_type=None):
             doc = parsed_model[i]
             for sent in doc.sentences:
                 sentence_temp = []
-                ##print("sent",sent)###
+                ### pring("sent",sent)###
 
-                ##print("sent.words",sent.words)
+                ### pring("sent.words",sent.words)
                 for word in sent.words:
-                    ##print("word",word)
+                    ### pring("word",word)
                     if (word.feats is not None) and (
                             word.feats.split("|")[0].split("=")[0] == mask.split("_")[0]):
 
@@ -316,17 +317,17 @@ def mask_text(txt_path, parsed_model, mask, mask_type=None):
                             sentence_temp.append(
                                 mask)  # Append the feature itself (value for Gender/Number etc)
                             indices.append(i)
-                            ##print("mask",mask)
+                            ### pring("mask",mask)
 
                         ######
 
                     else:
 
                         sentence_temp.append(word.text)
-                        ##print("word.text",word.text)
+                        ### pring("word.text",word.text)
 
             masked_sentences.append(" ".join(sentence_temp))
-            ##print(".join(sentence_temp)"," ".join(sentence_temp))###
+            ### pring(".join(sentence_temp)"," ".join(sentence_temp))###
 
         indices = list(set(indices))
 
@@ -340,9 +341,9 @@ def mask_text(txt_path, parsed_model, mask, mask_type=None):
 
             for ent in doc.ents:
 
-                #print("doc.ents",doc.ents)
-                #print("ent.start_char",ent.start_char)
-                #print("ent.end_char", ent.end_char)
+                ## pring("doc.ents",doc.ents)
+                ## pring("ent.start_char",ent.start_char)
+                ## pring("ent.end_char", ent.end_char)
 
                 if ent.type == mask:
 
@@ -352,10 +353,10 @@ def mask_text(txt_path, parsed_model, mask, mask_type=None):
                     ner_doc.append(ent.end_char)
 
                     ent_text = ent.text
-                    ##print("ent.text", ent.text)
+                    ### pring("ent.text", ent.text)
 
                     ent_list = ent_text.split(" ")
-                    ##print("ent_list", ent_list)
+                    ### pring("ent_list", ent_list)
 
                     exp = ent.type
 
@@ -364,9 +365,9 @@ def mask_text(txt_path, parsed_model, mask, mask_type=None):
 
                     ner_doc.append(exp)
 
-                    ##print("sentence[:ent.start_char]", sentence[:ent.start_char])
-                    ##print("sentence[ent.end_char:]", sentence[ent.end_char:])
-                    ##print("exp", exp)
+                    ### pring("sentence[:ent.start_char]", sentence[:ent.start_char])
+                    ### pring("sentence[ent.end_char:]", sentence[ent.end_char:])
+                    ### pring("exp", exp)
 
                     ##sentence = sentence[:ent.start_char] + exp + sentence[ent.end_char:]
                     indices.append(i)  ##here or tab?
@@ -396,12 +397,12 @@ def mask_text(txt_path, parsed_model, mask, mask_type=None):
 
             masked_sentences.append(new_sentence)
 
-            ##print("masked sentence", new_sentence)  ##
+            ### pring("masked sentence", new_sentence)  ##
         indices = list(set(indices))
-        # print("indices", indices)
+        # # pring("indices", indices)
 
-    # print('len(masked_sentences)', len(masked_sentences))
-    # print('$' * 10)
+    # # pring('len(masked_sentences)', len(masked_sentences))
+    # # pring('$' * 10)
 
     return masked_sentences, indices
 
@@ -484,10 +485,10 @@ def score_sentence_bleu(reference_path, candidate_path, DIR_OUT=None, indices=No
     score /= len(indices)
 
     ###############################################################
-    print("^"*20)
-    print("I'm inside score_sentence_bleu function")
-    print("len(indices), len(bleu): ",len(indices), len(bleu))
-    print("^" * 20)
+    # # pring("^"*20)
+    # # pring("I'm inside score_sentence_bleu function")
+    # # pring("len(indices), len(bleu): ",len(indices), len(bleu))
+    # # pring("^" * 20)
 
     return score, bleu
 
@@ -535,7 +536,7 @@ def choose_by_bleu(ref, candidates):
     index_max = list_bleu_per_candidate.index(
         max(list_bleu_per_candidate))  # index of candidate with max bleu score
 
-    # print("max bleu score is ", max_bleu)
+    # # pring("max bleu score is ", max_bleu)
 
     max_bleu_dict = {}
     max_bleu_dict["max_bleu"] = max_bleu
@@ -584,9 +585,9 @@ def hallucination_score(reference_path, candidate_path, mask, indices=None):
         miss /= len(indices)
         hit /= len(indices)
 
-        # print("add:", add)
-        # print("miss:", miss)
-        # print("hit", hit)
+        # # pring("add:", add)
+        # # pring("miss:", miss)
+        # # pring("hit", hit)
 
     return add, miss, hit
 
@@ -684,13 +685,13 @@ def compute_scores(ref_input, candidate_input, DIR_OUT, parsed_model_ref,parsed_
                                                                 DIR_OUT, indices=None,
                                                                 save_score=True)
 
-    print("len(bleu_not_masked_list) -- over ALL sentences",len(bleu_not_masked_list))
+    # # pring("len(bleu_not_masked_list) -- over ALL sentences",len(bleu_not_masked_list))
 
     dict_results[score_type+"_not_masked"] = bleu_not_masked #ORIGINAL #this is not over the indices, it's the original bleu score of the file! it can be used to choose the file with the best bleu for example
 
     for mask in mask_list:
 
-        print("mask",mask)
+        # # pring("mask",mask)
 
         masked_ref, indices_ref = mask_text(ref_input, parsed_model_ref, mask, mask_type)
         masked_candidate, indices_candidate = mask_text(candidate_input, parsed_model_candidate,
@@ -701,7 +702,7 @@ def compute_scores(ref_input, candidate_input, DIR_OUT, parsed_model_ref,parsed_
 
         indices = indices_intersection(indices_ref, indices_candidate)
 
-        print("len(indices)",len(indices))
+        # # pring("len(indices)",len(indices))
 
 
         """#####DELETE LATER#####
@@ -711,7 +712,7 @@ def compute_scores(ref_input, candidate_input, DIR_OUT, parsed_model_ref,parsed_
                 outfile1.write("reference: " + ref_input[ind1] + "\n")
                 outfile1.write("candidate_masked: " + masked_candidate[ind1] + "\n")
                 outfile1.write("candidate: " + candidate_input[ind1] + "\n")
-                ##print("&" * 50)
+                ### pring("&" * 50)
         ######################"""
 
         # bleu
@@ -728,14 +729,14 @@ def compute_scores(ref_input, candidate_input, DIR_OUT, parsed_model_ref,parsed_
                                                                     DIR_OUT, indices,
                                                                     save_score=False) #now this is the bleu score only over the indices
 
-            print("len(bleu_not_masked_list)", len(bleu_not_masked_list))
-            print("len(bleu_masked_list)", len(bleu_masked_list))
+            # pring("len(bleu_not_masked_list)", len(bleu_not_masked_list))
+            # pring("len(bleu_masked_list)", len(bleu_masked_list))
 
             total_bleu = score_masked - score_not_masked  # ORIGINAL
 
-            print("score_masked [from score function]",score_masked)
-            print("score_not_masked [from score function]",score_not_masked)
-            print("total bleu [score masked - score_not_masked]",total_bleu)
+            # pring("score_masked [from score function]",score_masked)
+            # pring("score_not_masked [from score function]",score_not_masked)
+            # pring("total bleu [score masked - score_not_masked]",total_bleu)
 
             ##sanity check##
             score_masked_check = 0
@@ -747,26 +748,26 @@ def compute_scores(ref_input, candidate_input, DIR_OUT, parsed_model_ref,parsed_
             for i in range(len(bleu_masked_list)):
                 score_masked_check += bleu_masked_list[i]
             score_masked_check /= len(bleu_masked_list)
-            print("compute score manually with the sum")
-            print("score_masked", score_masked_check)
-            print("score_not_masked", score_not_masked_check)
+            # pring("compute score manually with the sum")
+            # pring("score_masked", score_masked_check)
+            # pring("score_not_masked", score_not_masked_check)
 
-            print("FINAL CHECK")
+            # pring("FINAL CHECK")
             a = 0
             for i in range(len(bleu_masked_list)):
                 a += bleu_masked_list[i]
             a /= len(bleu_masked_list)
-            print("score_masked [sum ONLY over indices]", a)
-            print("total bleu [sum ONLY over indices]", a - score_not_masked_check)
-            print("total bleu [sum over WRONG indices]", total_bleu)
+            # pring("score_masked [sum ONLY over indices]", a)
+            # pring("total bleu [sum ONLY over indices]", a - score_not_masked_check)
+            # pring("total bleu [sum over WRONG indices]", total_bleu)
 
-            print("*"*20)
+            # pring("*"*20)
             counter_neg_score = 0.
             for i in range(len(bleu_not_masked_list)):
                 if bleu_masked_list[i] < bleu_not_masked_list[i]:
                     counter_neg_score += 1
 
-            print("counter_neg_score",counter_neg_score)
+            # pring("counter_neg_score",counter_neg_score)
             ################
 
 
@@ -834,9 +835,9 @@ def parse_file(DIR_OUT, mask_type, input, temp_filename,trg_lang = "en"):
     :return: parsed dictionary + save the parsed dictionary to DIR_OUT if it doesn't already exist
     """
 
-    print("temp_filename",temp_filename)
-    print("DIR_OUT",DIR_OUT)
-    print("mask_type",mask_type)
+    # pring("temp_filename",temp_filename)
+    # pring("DIR_OUT",DIR_OUT)
+    # pring("mask_type",mask_type)
 
     CHECK_FOLDER_REF = os.path.isfile(DIR_OUT + temp_filename + "_dict_parse_" + mask_type + ".txt")
 
@@ -882,7 +883,7 @@ def run_main(DIR_OUT, mask_list_path, ref_input, candidates_input, mask_type,trg
     # load reference & candidate files
     # NOTE: if the ref OR candidates are of the wrong form, no error message will appear
 
-    print("DIR_OUT",DIR_OUT)
+    # pring("DIR_OUT",DIR_OUT)
 
     reference, candidates = load_ref_candidates(ref_input, candidates_input)
 
@@ -906,17 +907,17 @@ def run_main(DIR_OUT, mask_list_path, ref_input, candidates_input, mask_type,trg
 
         for ind_candidate in range(len(candidates)):
 
-            print("len(candidates)",len(candidates))
+            # pring("len(candidates)",len(candidates))
 
             current_candidate = candidates[ind_candidate]
 
-            print("current_candidate",current_candidate)
+            # pring("current_candidate",current_candidate)
 
             ######added this for Gal###########
 
             if type(candidates_input[ind_candidate]) == str:
 
-                print("candidates_input[ind_candidate]",candidates_input[ind_candidate])
+                # pring("candidates_input[ind_candidate]",candidates_input[ind_candidate])
 
                 temp_filename_candidate = candidates_input[ind_candidate].strip(".txt")
                 temp_filename_candidate = temp_filename_candidate.split("/")
@@ -930,7 +931,7 @@ def run_main(DIR_OUT, mask_list_path, ref_input, candidates_input, mask_type,trg
             make_folder(DIR_OUT_PARSE)
 
 
-            #print("DIR_OUT_PARSE",DIR_OUT_PARSE)
+            ## pring("DIR_OUT_PARSE",DIR_OUT_PARSE)
 
             dict_parse_ref_mask = parse_file(DIR_OUT_PARSE,mask_type,reference,temp_filename_ref,trg_lang)
             dict_parse_candidate_mask = parse_file(DIR_OUT_PARSE,mask_type,current_candidate,temp_filename_candidate,trg_lang)
@@ -985,7 +986,7 @@ def run_main(DIR_OUT, mask_list_path, ref_input, candidates_input, mask_type,trg
         DIR_OUT_PARSE = DIR_OUT + "parsed_files/"
         make_folder(DIR_OUT_PARSE)
 
-        #print("DIR_OUT_PARSE",DIR_OUT_PARSE)
+        ## pring("DIR_OUT_PARSE",DIR_OUT_PARSE)
 
         dict_parse_ref_mask = parse_file(DIR_OUT_PARSE, mask_type, reference, temp_filename_ref,trg_lang)
         dict_parse_candidate_mask = parse_file(DIR_OUT_PARSE, mask_type, current_candidate, temp_filename_candidate,trg_lang)
@@ -1014,15 +1015,15 @@ def run_main(DIR_OUT, mask_list_path, ref_input, candidates_input, mask_type,trg
 #usage example
 
 # ARGS
-DIR_OUT = "/cs/snapless/oabend/tailin/MT/NEW/outputs/17.10.21/"
-
-ref_input = "/cs/snapless/oabend/tailin/MT/NEW/codes/trial_data/ref_ner_neg.txt"
-candidates_input = ["/cs/snapless/oabend/tailin/MT/NEW/codes/trial_data/can_ner_neg.txt"]
-
-mask_type = "ner"
-
-mask_list_path = "/cs/snapless/oabend/tailin/MT/NEW/codes/trial_data/" + mask_type + "_mask_list.txt"
-
-#######################################################################################################
-
-result = run_main(DIR_OUT, mask_list_path, ref_input, candidates_input,mask_type,trg_lang = "en",max_bleu_dict_path = None, run_all = True, score_type = "bleu")
+# DIR_OUT = "/cs/snapless/oabend/tailin/MT/NEW/outputs/17.10.21/"
+#
+# ref_input = "/cs/snapless/oabend/tailin/MT/NEW/codes/trial_data/ref_ner_neg.txt"
+# candidates_input = ["/cs/snapless/oabend/tailin/MT/NEW/codes/trial_data/can_ner_neg.txt"]
+#
+# mask_type = "ner"
+#
+# mask_list_path = "/cs/snapless/oabend/tailin/MT/NEW/codes/trial_data/" + mask_type + "_mask_list.txt"
+#
+# #######################################################################################################
+#
+# result = run_main(DIR_OUT, mask_list_path, ref_input, candidates_input,mask_type,trg_lang = "en",max_bleu_dict_path = None, run_all = True, score_type = "bleu")
