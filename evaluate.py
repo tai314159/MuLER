@@ -4,8 +4,8 @@ from vad_scores import ValenceScorer, DominanceScorer, ArousalScorer
 from sentiment_score import SentimentScorer
 import numpy as np
 # from masker import score_sentence_bleu
-from compute_scores_171021 import score_sentence_bleu
-from compute_scores_171021 import run_main as run_mask
+from compute_scores_201021 import score_sentence_bleu
+from compute_scores_201021 import run_main as run_mask
 import os
 import sys
 
@@ -124,7 +124,7 @@ def tailin():
 
 
 def eval_muler(references, candidates, lang='en', metric_names=None, masking=None, cache_dir=None,
-               are_paths=True, always_return_list=True):
+               are_paths=True, always_return_list=True, version=None):
     if lang not in LANGS:
         raise RuntimeError(lang + ' not supported')
     if (not are_paths) and len(candidates) and type(candidates[0]) != list:
@@ -138,6 +138,9 @@ def eval_muler(references, candidates, lang='en', metric_names=None, masking=Non
         candidates = path2list(can_paths, return_list_always=True)
     if cache_dir is not None:
         os.makedirs(cache_dir, exist_ok=True)
+        print('YAY CACHE')
+    else:
+        raise RuntimeError('no cache')
     metric_names = get_names(METRICS, metric_names)
     maskings = get_names(MASKING, masking)
     # masking_res = dict()
@@ -169,6 +172,7 @@ def eval_muler(references, candidates, lang='en', metric_names=None, masking=Non
             # for m in metric_names:
             #     can_metrics[m + '_diff'] = float('inf')
         else:
+
             new_candidates.append(can)
             can_metrics['bleu'], _ = score_sentence_bleu(references, can)
             for m in metric_names:
@@ -197,11 +201,12 @@ def eval_muler(references, candidates, lang='en', metric_names=None, masking=Non
             # ref_input = ref_path,
             # candidates_input = can_paths,
             # mask_type = mask, run_all = True, score_type = 'bleu', DIR_OUT = cache_dir
-
+            print(cache_dir)
             res = run_mask(mask_list_path ='20.07.21/mask_lists/' + mask + '_full_list.txt',
                            ref_input = ref_path,
                            candidates_input=can_paths,
-                           mask_type=mask, run_all=True, score_type='bleu', DIR_OUT=cache_dir)
+                           mask_type=mask, run_all=True, score_type='bleu', DIR_OUT=cache_dir,
+                           mask_text_version=version)
             # mask_res = dict()
             # for k in res:
             #     mask_res[mask.upper() + '_' + k] = res[k]
