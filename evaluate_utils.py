@@ -6,7 +6,7 @@ from collections import defaultdict
 from evaluate import eval_muler
 import sys
 
-DISCARD = {'newstest2020.de-en.yolo.1052.txt'}
+DISCARD = {}  # {'newstest2020.de-en.yolo.1052.txt'}
 
 
 def path2list(filepath, return_list_always=False):
@@ -29,9 +29,6 @@ def path2list(filepath, return_list_always=False):
     if len(txts) == 1 and not return_list_always:
         return txts[0]
     return txts
-
-
-
 
 
 def get_names(possibilities, required, name_mapping=lambda x: x):
@@ -213,7 +210,7 @@ def get_save_name(only_missing, only_best_bleu, years):
 
 
 def create_database(submissions_path, output_path, metrics=None, years=None, sources=None,
-                    targets=None, only_missing=False, only_best_bleu=False):
+                    targets=None, only_missing=False, only_best_bleu=False, version=None):
     paths = iterate_submissions(submissions_path, years, sources, targets)
     if only_best_bleu and only_missing:
         raise RuntimeError('Can have one special treatment at a run')
@@ -230,7 +227,9 @@ def create_database(submissions_path, output_path, metrics=None, years=None, sou
     if only_best_bleu:
         print('ONLY BSET BLEU')
         paths = get_bestbleu(paths)
-    save_name = get_save_name(only_missing, only_best_bleu, years)
+    save_dir = 'mask_v_' + str(version).lower()
+    os.makedirs(save_dir, exist_ok=True)
+    save_name = os.path.join(save_dir, get_save_name(only_missing, only_best_bleu, years))
     # import sys
     # sys.exit()
     for year in paths:
@@ -243,7 +242,7 @@ def create_database(submissions_path, output_path, metrics=None, years=None, sou
                 continue
             print('-->', year, src, trg)
             ref_path, can_paths = paths[year][src, trg]
-
+            can_paths = can_paths[:1] # todo delete
             # ref, cans = path2list(ref_path), path2list(can_paths, return_list_always=only_best_bleu)
             ref, cans = ref_path, can_paths
 
@@ -253,8 +252,9 @@ def create_database(submissions_path, output_path, metrics=None, years=None, sou
             # for i, p in enumerate(can_paths):
             #     print(i, p.split('/')[-1])
             results = eval_muler(ref, cans, trg, cache_dir=os.path.join(
-                '/cs/snapless/oabend/gal.patel/MT_eval_cache/' + year + '_' + '_' + src + '_' + trg),
-                                 are_paths=True)
+                '/cs/snapless/oabend/gal.patel/MT_eval_cache_testy/' + year + '_' + '_' + src +
+                '_' + trg),
+                                 are_paths=True, version=version)
             if len(results) != len(cans):
                 print('UNMATCHED results&cans')
                 database = database.append({'year': year, 'src': src, 'trg': trg},
@@ -288,13 +288,21 @@ if __name__ == '__main__':
     # print(collection.keys())
     # print(collection['wmt14']['fr', 'en'][0])
     # print(collection['wmt14']['fr', 'en'][1][0])
+    sources = None
+
     if len(sys.argv) > 1:
         year = eval(sys.argv[1])
         DISCARD_SOURCES = []
     else:
         year = None
-        DISCARD_SOURCES = ['de', 'cs', 'fi', 'ru', 'tr', 'zh']
+        # DISCARD_SOURCES = ['de', 'cs', 'fi', 'ru', 'tr', 'zh']
+    if len(sys.argv) > 2:
+        version = str(sys.argv[2])
+    else:
+        version = None
+        sources = 'fi'
+
     create_database(submissions_path, '/cs/labs/oabend/gal.patel/projects/MT_eval',
-                    sources=None, targets='en', years=year,
-                    only_missing=False, only_best_bleu=False)
+                    sources=sources, targets='en', years=year,
+                    only_missing=False, only_best_bleu=False, version=version)
     # merge_exist('/cs/labs/oabend/gal.patel/projects/MT_eval')
