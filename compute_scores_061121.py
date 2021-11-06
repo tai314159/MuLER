@@ -19,7 +19,7 @@ CACHE = '/cs/snapless/oabend/tailin/MT/NEW/cache/'
 # stanza.download(model_dir=CACHE)
 
 
-"""def load_model(lang, model_type):
+def load_model(lang, model_type):
     if model_type == "pos":
         model = stanza.Pipeline(lang, processors='tokenize,pos', tokenize_no_ssplit=True,
                                 dir=CACHE)
@@ -28,7 +28,7 @@ CACHE = '/cs/snapless/oabend/tailin/MT/NEW/cache/'
     if model_type == "feat":
         model = stanza.Pipeline(lang, processors='tokenize,mwt,pos,lemma,depparse', dir=CACHE)
 
-    return model"""
+    return model
 
 """def load_model(lang, model_type):
     if model_type == "pos":
@@ -39,7 +39,7 @@ CACHE = '/cs/snapless/oabend/tailin/MT/NEW/cache/'
         #model = stanza.Pipeline(lang, processors='tokenize,mwt,pos,lemma,depparse')
         model = stanza.Pipeline(lang, processors='tokenize,pos,depparse')
 
-    return model"""
+    return model
 
 
 def load_model(lang, model_type):
@@ -51,7 +51,7 @@ def load_model(lang, model_type):
         # model = stanza.Pipeline(lang, processors='tokenize,mwt,pos,lemma,depparse')
         model = stanza.Pipeline(lang, processors='tokenize,pos,depparse,lemma')
 
-    return model
+    return model"""
 
 
 def load_pickle(filepath):
