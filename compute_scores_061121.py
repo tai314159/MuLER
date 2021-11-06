@@ -1,3 +1,7 @@
+#the new muler score is implemented in this code
+#run everything the same
+#updated version of the muler score
+
 import stanza
 import pickle
 import nltk
@@ -9,13 +13,13 @@ import random
 from datetime import datetime
 from rouge_score import rouge_scorer
 import re
-import sys
-# CACHE = '/cs/snapless/oabend/tailin/MT/NEW/cache/'
-CACHE = '/cs/snapless/oabend/gal.patel/stanza'
+
+CACHE = '/cs/snapless/oabend/tailin/MT/NEW/cache/'
+
 # stanza.download(model_dir=CACHE)
 
 
-def load_model(lang, model_type):
+"""def load_model(lang, model_type):
     if model_type == "pos":
         model = stanza.Pipeline(lang, processors='tokenize,pos', tokenize_no_ssplit=True,
                                 dir=CACHE)
@@ -24,7 +28,7 @@ def load_model(lang, model_type):
     if model_type == "feat":
         model = stanza.Pipeline(lang, processors='tokenize,mwt,pos,lemma,depparse', dir=CACHE)
 
-    return model
+    return model"""
 
 """def load_model(lang, model_type):
     if model_type == "pos":
@@ -38,16 +42,16 @@ def load_model(lang, model_type):
     return model"""
 
 
-# def load_model(lang, model_type):
-#     if model_type == "pos":
-#         model = stanza.Pipeline(lang, processors='tokenize,pos,lemma', tokenize_no_ssplit=True)
-#     if model_type == "ner":
-#         model = stanza.Pipeline(lang, processors='tokenize,ner')
-#     if model_type == "feat":
-#         # model = stanza.Pipeline(lang, processors='tokenize,mwt,pos,lemma,depparse')
-#         model = stanza.Pipeline(lang, processors='tokenize,pos,depparse,lemma')
-#
-#     return model
+def load_model(lang, model_type):
+    if model_type == "pos":
+        model = stanza.Pipeline(lang, processors='tokenize,pos,lemma', tokenize_no_ssplit=True)
+    if model_type == "ner":
+        model = stanza.Pipeline(lang, processors='tokenize,ner')
+    if model_type == "feat":
+        # model = stanza.Pipeline(lang, processors='tokenize,mwt,pos,lemma,depparse')
+        model = stanza.Pipeline(lang, processors='tokenize,pos,depparse,lemma')
+
+    return model
 
 
 def load_pickle(filepath):
@@ -67,9 +71,6 @@ def load_sentences(filepath):
     :return: list of sentences
     """
     temp_list = []
-    # with open(filepath, 'r', encoding="utf-8") as txtfile: #switched 'r' to 'rb'
-
-    ### print("filepath",filepath)
 
     with open(filepath, 'r') as txtfile:
         for line in txtfile:
@@ -99,12 +100,11 @@ def load_ref_candidates(ref, candidates):
         candidate = candidates  # list of lists of sentences
 
     else:
-        ### print("candidates",candidates) ###
+        ###print("candidates",candidates) ###
 
         candidate = []
         for i in range(len(candidates)):
-            ### print("i",i) ###
-            ### print("candidates[i]", candidates[i]) ###
+
             candidate.append(load_sentences(candidates[i]))
 
     return reference, candidate
@@ -122,8 +122,8 @@ def count_lines(filepath):
         if i:
             Counter += 1
 
-    ### print("This is the number of lines in the file")
-    ### print(Counter)
+    ###print("This is the number of lines in the file")
+    ###print(Counter)
 
     return Counter
 
@@ -148,10 +148,10 @@ def make_folder(MYDIR):
     # If folder doesn't exist, then create it.
     if not CHECK_FOLDER:
         os.makedirs(MYDIR)
-        # # print("created folder : ", MYDIR)
+        # #print("created folder : ", MYDIR)
 
     # else:
-    #     # print(MYDIR, "folder already exists.")
+    #     #print(MYDIR, "folder already exists.")
 
     return
 
@@ -233,7 +233,7 @@ def get_mask_list(txt_path, model_type, lang):
         for i in range(len(sentences)):
             doc = model(sentences[i])
             # for ent in doc.ents:
-            #     # print("ent.type", ent.type)
+            #     #print("ent.type", ent.type)
             # mask_list.append(str(ent.type))
 
         # mask_list = list(set(mask_list))
@@ -273,13 +273,13 @@ def mask_text_old(txt_path, parsed_model, mask, mask_type=None):
             doc = parsed_model[i]
 
             if not sentences[i]:
-                # # print("empty str")
+                # #print("empty str")
                 sentence_temp = []
                 masked_sentences.append(" ".join(sentence_temp))
             else:
-                # # print("not empty str")
+                # #print("not empty str")
                 for sent in doc.sentences:
-                    ### print("sent",sent) ##
+                    ###print("sent",sent) ##
 
                     sentence_temp = []
                     for word in sent.words:
@@ -297,11 +297,11 @@ def mask_text_old(txt_path, parsed_model, mask, mask_type=None):
             doc = parsed_model[i]
             for sent in doc.sentences:
                 sentence_temp = []
-                ### print("sent",sent)###
+                ###print("sent",sent)###
 
-                ### print("sent.words",sent.words)
+                ###print("sent.words",sent.words)
                 for word in sent.words:
-                    ### print("word",word)
+                    ###print("word",word)
                     if (word.feats is not None) and (
                             word.feats.split("|")[0].split("=")[0] == mask.split("_")[0]):
 
@@ -332,17 +332,17 @@ def mask_text_old(txt_path, parsed_model, mask, mask_type=None):
                             sentence_temp.append(
                                 mask)  # Append the feature itself (value for Gender/Number etc)
                             indices.append(i)
-                            ### print("mask",mask)
+                            ###print("mask",mask)
 
                         ######
 
                     else:
 
                         sentence_temp.append(word.text)
-                        ### print("word.text",word.text)
+                        ###print("word.text",word.text)
 
             masked_sentences.append(" ".join(sentence_temp))
-            ### print(".join(sentence_temp)"," ".join(sentence_temp))###
+            ###print(".join(sentence_temp)"," ".join(sentence_temp))###
 
         indices = list(set(indices))
 
@@ -356,9 +356,9 @@ def mask_text_old(txt_path, parsed_model, mask, mask_type=None):
 
             for ent in doc.ents:
 
-                # # print("doc.ents",doc.ents)
-                # # print("ent.start_char",ent.start_char)
-                # # print("ent.end_char", ent.end_char)
+                # #print("doc.ents",doc.ents)
+                # #print("ent.start_char",ent.start_char)
+                # #print("ent.end_char", ent.end_char)
 
                 if ent.type == mask:
 
@@ -368,10 +368,10 @@ def mask_text_old(txt_path, parsed_model, mask, mask_type=None):
                     ner_doc.append(ent.end_char)
 
                     ent_text = ent.text
-                    ### print("ent.text", ent.text)
+                    ###print("ent.text", ent.text)
 
                     ent_list = ent_text.split(" ")
-                    ### print("ent_list", ent_list)
+                    ###print("ent_list", ent_list)
 
                     exp = ent.type
 
@@ -380,9 +380,9 @@ def mask_text_old(txt_path, parsed_model, mask, mask_type=None):
 
                     ner_doc.append(exp)
 
-                    ### print("sentence[:ent.start_char]", sentence[:ent.start_char])
-                    ### print("sentence[ent.end_char:]", sentence[ent.end_char:])
-                    ### print("exp", exp)
+                    ###print("sentence[:ent.start_char]", sentence[:ent.start_char])
+                    ###print("sentence[ent.end_char:]", sentence[ent.end_char:])
+                    ###print("exp", exp)
 
                     ##sentence = sentence[:ent.start_char] + exp + sentence[ent.end_char:]
                     indices.append(i)  ##here or tab?
@@ -408,12 +408,12 @@ def mask_text_old(txt_path, parsed_model, mask, mask_type=None):
 
             masked_sentences.append(new_sentence)
 
-            ### print("masked sentence", new_sentence)  ##
+            ###print("masked sentence", new_sentence)  ##
         indices = list(set(indices))
-        # # print("indices", indices)
+        # #print("indices", indices)
 
-    # # print('len(masked_sentences)', len(masked_sentences))
-    # # print('$' * 10)
+    # #print('len(masked_sentences)', len(masked_sentences))
+    # #print('$' * 10)
 
     return masked_sentences, indices
 
@@ -423,7 +423,7 @@ def mask_text_version0(txt_path, parsed_model, mask, mask_type=None):
     :return: masked sentnces + indices of masked sentences (ones containing the mask)
     """
 
-    # print("version 0") ###
+    #print("version 0") ###
 
     if type(txt_path) == list:
         sentences = txt_path
@@ -473,7 +473,7 @@ def mask_text_version0(txt_path, parsed_model, mask, mask_type=None):
                 sentence_temp = []
 
                 for word in sent.words:
-                    ### print("word",word)
+                    ###print("word",word)
                     if (word.feats is not None) and (
                             word.feats.split("|")[0].split("=")[0] == mask.split("_")[0]):
 
@@ -536,7 +536,7 @@ def mask_text_version0(txt_path, parsed_model, mask, mask_type=None):
 
                     if ent.text.startswith("the"):
 
-                        # print("ent.text.startswith(the)")
+                        #print("ent.text.startswith(the)")
 
                         ner_doc = []
 
@@ -544,9 +544,9 @@ def mask_text_version0(txt_path, parsed_model, mask, mask_type=None):
                         ner_doc.append(ent.end_char)
 
                         ent_text = ent.text
-                        # print("ent.text", ent_text)
+                        #print("ent.text", ent_text)
                         ent_text = ent_text.strip("the ")
-                        # print("ent_text.strip(the)", ent.text)
+                        #print("ent_text.strip(the)", ent.text)
 
                         ent_list = ent_text.split(" ")
 
@@ -570,9 +570,9 @@ def mask_text_version0(txt_path, parsed_model, mask, mask_type=None):
                         ner_doc.append(ent.end_char)
 
                         ent_text = ent.text
-                        # print("ent.text", ent.text)
-                        # print("ent.start_char", ent.start_char)
-                        # print("ent.end_char", ent.end_char)
+                        #print("ent.text", ent.text)
+                        #print("ent.start_char", ent.start_char)
+                        #print("ent.end_char", ent.end_char)
 
                         ent_list = ent_text.split(" ")
 
@@ -590,7 +590,7 @@ def mask_text_version0(txt_path, parsed_model, mask, mask_type=None):
 
             #####
 
-            # print("ner_doc_final", ner_doc_final)
+            #print("ner_doc_final", ner_doc_final)
 
             new_sentence = ''
             if len(ner_doc_final) == 0:
@@ -619,7 +619,7 @@ def mask_text_version0(txt_path, parsed_model, mask, mask_type=None):
                 match_list.append([match.start(), match.end(), mask + str(counter_mask)])
                 counter_mask += 1
 
-            # print("match_list", match_list)
+            #print("match_list", match_list)
 
             if counter_mask == 0:
                 new_sentence1 = new_sentence
@@ -637,7 +637,7 @@ def mask_text_version0(txt_path, parsed_model, mask, mask_type=None):
                         else:
                             new_sentence1 += new_sentence[match_list[i][1]:]
 
-            # print("new_sentence1", new_sentence1)
+            #print("new_sentence1", new_sentence1)
 
             masked_sentences.append(new_sentence1)"""
 
@@ -719,7 +719,7 @@ def mask_text_version1(txt_path, parsed_model, mask, mask_type=None):
     here mask is --> VERB1 VERB2...VERB3....
     """
 
-    # print("version 1") ###
+    #print("version 1") ###
 
     if type(txt_path) == list:
         sentences = txt_path
@@ -771,7 +771,7 @@ def mask_text_version1(txt_path, parsed_model, mask, mask_type=None):
                     # deal with multiple masks
                     new_sentence1 = mask_multiple_words_version1(mask,new_sentence)
 
-                    # print("new_sentence1", new_sentence1)
+                    #print("new_sentence1", new_sentence1)
 
                     masked_sentences.append(new_sentence1)
                     ################################################################
@@ -830,11 +830,11 @@ def mask_text_version1(txt_path, parsed_model, mask, mask_type=None):
 
             new_sentence = " ".join(sentence_temp)
 
-            # print("new_sentence",new_sentence) ##
+            #print("new_sentence",new_sentence) ##
 
             new_sentence1 = mask_multiple_words_version1(mask, new_sentence)
 
-            # print("new_sentence1", new_sentence1)
+            #print("new_sentence1", new_sentence1)
 
             masked_sentences.append(new_sentence1)
 
@@ -856,7 +856,7 @@ def mask_text_version1(txt_path, parsed_model, mask, mask_type=None):
 
                     if ent.text.startswith("the"):
 
-                        # print("ent.text.startswith(the)")
+                        #print("ent.text.startswith(the)")
 
                         ner_doc = []
 
@@ -864,9 +864,9 @@ def mask_text_version1(txt_path, parsed_model, mask, mask_type=None):
                         ner_doc.append(ent.end_char)
 
                         ent_text = ent.text
-                        # print("ent.text", ent_text)
+                        #print("ent.text", ent_text)
                         ent_text = ent_text.strip("the ")
-                        # print("ent_text.strip(the)", ent.text)
+                        #print("ent_text.strip(the)", ent.text)
 
                         ent_list = ent_text.split(" ")
 
@@ -891,12 +891,12 @@ def mask_text_version1(txt_path, parsed_model, mask, mask_type=None):
                         ner_doc.append(ent.end_char)
 
                         ent_text = ent.text
-                        # print("ent.text", ent.text)
-                        # print("ent.start_char", ent.start_char)
-                        # print("ent.end_char", ent.end_char)
+                        #print("ent.text", ent.text)
+                        #print("ent.start_char", ent.start_char)
+                        #print("ent.end_char", ent.end_char)
 
                         ent_list = ent_text.split(" ")
-                        ### print("ent_list", ent_list)
+                        ###print("ent_list", ent_list)
 
                         exp = ent.type
 
@@ -913,7 +913,7 @@ def mask_text_version1(txt_path, parsed_model, mask, mask_type=None):
 
             #####
 
-            # print("ner_doc_final", ner_doc_final)
+            #print("ner_doc_final", ner_doc_final)
 
             new_sentence = ''
             if len(ner_doc_final) == 0:
@@ -935,7 +935,7 @@ def mask_text_version1(txt_path, parsed_model, mask, mask_type=None):
             # deal with multiple masks
             new_sentence1 = mask_multiple_words_version1(mask,new_sentence)
 
-            # print("new_sentence1", new_sentence1)
+            #print("new_sentence1", new_sentence1)
 
             # new_sentence1 is with mask+number
             masked_sentences.append(new_sentence1)
@@ -945,13 +945,249 @@ def mask_text_version1(txt_path, parsed_model, mask, mask_type=None):
 
     return masked_sentences, indices
 
+def mask_text_min(txt_path, parsed_model, mask, mask_type=None, mask_shape = None):
+    """
+    :return: masked sentnces + indices of masked sentences (ones containing the mask)
+    here mask is --> VERB1 VERB2...VERB3....
+    added: mask_shape parameter; this is a str, it will replace the mask with this string (to allow different strings in order to minimize the bleu later on)
+    """
+
+    if mask_shape is None:
+        mask_shape = "MASK"
+
+
+    if type(txt_path) == list:
+        sentences = txt_path
+
+    else:
+        sentences = load_sentences(txt_path)
+
+    masked_sentences = []
+    indices = []
+
+    if mask_type == "pos":
+
+        match_list = []
+
+        for i in range(len(sentences)):
+
+            doc = parsed_model[i]
+
+            if not sentences[i]:
+                sentence_temp = []
+                masked_sentences.append(" ".join(sentence_temp))
+            else:
+                for sent in doc.sentences:
+
+                    sentence_temp = []
+                    for word in sent.words:
+                        if word.upos == mask:
+                            sentence_temp.append(mask_shape)
+                            indices.append(i)
+
+                            word_position = word.misc
+                            word_start = int(word_position.split("|")[0].split("=")[1])
+                            word_end = int(word_position.split("|")[1].split("=")[1])
+                            match_list.append([word_start,word_end,mask_shape])
+
+
+
+                        else:
+                            sentence_temp.append(word.text)
+
+                    if mask_shape + "'" in sentence_temp:
+                        sentence_temp = [mask_shape if x == mask_shape + "'" else x for x in sentence_temp]
+                    if mask_shape + "'s" in sentence_temp:
+                        sentence_temp = [mask_shape if x == mask_shape + "'s" else x for x in sentence_temp]
+
+                    new_sentence = " ".join(sentence_temp)
+
+                    ########################SECOND TRIAL############################
+                    # deal with multiple masks (add serial nu. to the mask)
+                    new_sentence1 = mask_multiple_words_version1(mask_shape,new_sentence)
+
+                    #print("new_sentence1", new_sentence1)
+                    masked_sentences.append(new_sentence1)
+                    ################################################################
+
+        indices = list(set(indices))
+
+    if mask_type == "feat":
+
+        for i in range(len(sentences)):
+            doc = parsed_model[i]
+            for sent in doc.sentences:
+                sentence_temp = []
+
+                for word in sent.words:
+                    if (word.feats is not None) and (
+                            word.feats.split("|")[0].split("=")[0] == mask.split("_")[0]): #not working with this case anymore
+
+                        if len(mask.split("_")) > 1:  # if we split the mask by pos types
+
+                            upos_list.append(word.upos)
+
+                            if mask.split("_")[
+                                1] == "NOUN":  # mask only intersection of feat with NOUN
+
+                                if word.upos == "PRON":
+                                    sentence_temp.append(
+                                        mask)  # Append the feature itself (value for Gender/Number etc)
+                                    indices.append(i)
+
+                            if mask.split("_")[
+                                1] == "VERB":  # mask only intersection of feat with NOUN
+
+                                if word.upos == "VERB":
+                                    sentence_temp.append(
+                                        mask)  # Append the feature itself (value for Gender/Number etc)
+                                    indices.append(i)
+
+                        ######
+
+                        else:  # regular case (feat not splitted to pos types)
+
+                            sentence_temp.append(
+                                mask_shape)  # Append the feature itself (value for Gender/Number etc)
+                            indices.append(i)
+
+                        ######
+
+                    else:
+
+                        sentence_temp.append(word.text)
+
+            if mask_shape + "'" in sentence_temp:
+                sentence_temp = [mask_shape if x == mask_shape + "'" else x for x in sentence_temp]
+            if mask_shape + "'s" in sentence_temp:
+                sentence_temp = [mask_shape if x == mask_shape + "'s" else x for x in sentence_temp]
+
+            new_sentence = " ".join(sentence_temp)
+
+            #print("new_sentence",new_sentence) ##
+
+            new_sentence1 = mask_multiple_words_version1(mask_shape, new_sentence)
+
+            #print("new_sentence1", new_sentence1)
+
+            masked_sentences.append(new_sentence1)
+
+
+        indices = list(set(indices))
+
+    if mask_type == "ner":
+
+        for i in range(len(sentences)):
+            sentence = sentences[i]
+            doc = parsed_model[i]
+
+            ner_doc_final = []  ##
+
+            for ent in doc.ents:
+
+                if ent.type == mask:
+
+                    if ent.text.startswith("the"):
+
+                        ner_doc = []
+
+                        ner_doc.append(ent.start_char + 4)
+                        ner_doc.append(ent.end_char)
+
+                        ent_text = ent.text
+                        #print("ent.text", ent_text)
+                        ent_text = ent_text.strip("the ")
+                        #print("ent_text.strip(the)", ent.text)
+
+                        ent_list = ent_text.split(" ")
+
+                        exp = ent.type
+
+                        for ind_ent in range(1, len(ent_list)):
+                            exp = exp + " " + ent.type
+
+                        ner_doc.append(exp)
+
+
+                        indices.append(i)  ##here or tab?
+
+                        ner_doc_final.append(ner_doc)
+
+
+
+                    else:
+                        ner_doc = []
+
+                        ner_doc.append(ent.start_char)
+                        ner_doc.append(ent.end_char)
+
+                        ent_text = ent.text
+                        #print("ent.text", ent.text)
+                        #print("ent.start_char", ent.start_char)
+                        #print("ent.end_char", ent.end_char)
+
+                        ent_list = ent_text.split(" ")
+                        ###print("ent_list", ent_list)
+
+                        exp = ent.type
+
+                        for ind_ent in range(1, len(ent_list)):
+                            exp = exp + " " + ent.type
+
+                        ner_doc.append(exp)
+
+
+                        indices.append(i)  ##here or tab?
+
+                        ner_doc_final.append(ner_doc)
+                        #####
+
+            #####
+
+            #print("ner_doc_final", ner_doc_final)
+
+            new_sentence = ''
+            if len(ner_doc_final) == 0:
+                new_sentence = sentence
+            else:
+                new_sentence = sentence[0:ner_doc_final[0][0]]
+                num_of_ent = len(ner_doc_final)
+                for i in range(num_of_ent):
+                    new_sentence += ner_doc_final[i][2]
+                    if i != len(ner_doc_final) - 1:
+                        new_sentence += sentence[ner_doc_final[i][1]: ner_doc_final[i + 1][0]]
+                    else:
+                        new_sentence += sentence[ner_doc_final[i][1]:]
+
+
+            new_sentence = new_sentence.replace(mask + "'s", mask)
+            new_sentence = new_sentence.replace(mask + "'", mask)
+
+            #trial: replace the mask here with mask_shape (ner is a more complicated case)
+            new_sentence = new_sentence.replace(mask, mask_shape)
+
+            # deal with multiple masks
+            new_sentence1 = mask_multiple_words_version1(mask_shape,new_sentence)
+
+            #print("new_sentence1", new_sentence1)
+
+            # new_sentence1 is with mask+number
+            masked_sentences.append(new_sentence1)
+
+        indices = list(set(indices))
+
+
+    return masked_sentences, indices
+
+
+
 def mask_text_version2(txt_path, parsed_model, mask, mask_type=None):
     """
     :return: masked sentnces + indices of masked sentences (ones containing the mask)
     here mask is --> VERB1 VERB2...VERB3....
     """
 
-    # print("version 2")
+    #print("version 2")
 
     if type(txt_path) == list:
         sentences = txt_path
@@ -1003,7 +1239,7 @@ def mask_text_version2(txt_path, parsed_model, mask, mask_type=None):
                     # deal with multiple masks
                     new_sentence1 = mask_multiple_words_version2(mask,new_sentence)
 
-                    # print("new_sentence1", new_sentence1)
+                    #print("new_sentence1", new_sentence1)
 
                     masked_sentences.append(new_sentence1)
                     ################################################################
@@ -1063,11 +1299,11 @@ def mask_text_version2(txt_path, parsed_model, mask, mask_type=None):
 
             new_sentence = " ".join(sentence_temp)
 
-            # print("new_sentence",new_sentence) ##
+            #print("new_sentence",new_sentence) ##
 
             new_sentence1 = mask_multiple_words_version2(mask, new_sentence)
 
-            # print("new_sentence1", new_sentence1)
+            #print("new_sentence1", new_sentence1)
 
             masked_sentences.append(new_sentence1)
 
@@ -1089,7 +1325,7 @@ def mask_text_version2(txt_path, parsed_model, mask, mask_type=None):
 
                     if ent.text.startswith("the"):
 
-                        # print("ent.text.startswith(the)")
+                        #print("ent.text.startswith(the)")
 
                         ner_doc = []
 
@@ -1097,9 +1333,9 @@ def mask_text_version2(txt_path, parsed_model, mask, mask_type=None):
                         ner_doc.append(ent.end_char)
 
                         ent_text = ent.text
-                        # print("ent.text", ent_text)
+                        #print("ent.text", ent_text)
                         ent_text = ent_text.strip("the ")
-                        # print("ent_text.strip(the)", ent.text)
+                        #print("ent_text.strip(the)", ent.text)
 
                         ent_list = ent_text.split(" ")
 
@@ -1124,12 +1360,12 @@ def mask_text_version2(txt_path, parsed_model, mask, mask_type=None):
                         ner_doc.append(ent.end_char)
 
                         ent_text = ent.text
-                        # print("ent.text", ent.text)
-                        # print("ent.start_char", ent.start_char)
-                        # print("ent.end_char", ent.end_char)
+                        #print("ent.text", ent.text)
+                        #print("ent.start_char", ent.start_char)
+                        #print("ent.end_char", ent.end_char)
 
                         ent_list = ent_text.split(" ")
-                        ### print("ent_list", ent_list)
+                        ###print("ent_list", ent_list)
 
                         exp = ent.type
 
@@ -1146,7 +1382,7 @@ def mask_text_version2(txt_path, parsed_model, mask, mask_type=None):
 
             #####
 
-            # print("ner_doc_final", ner_doc_final)
+            #print("ner_doc_final", ner_doc_final)
 
             new_sentence = ''
             if len(ner_doc_final) == 0:
@@ -1168,7 +1404,7 @@ def mask_text_version2(txt_path, parsed_model, mask, mask_type=None):
             # deal with multiple masks
             new_sentence1 = mask_multiple_words_version2(mask,new_sentence)
 
-            # print("new_sentence1", new_sentence1)
+            #print("new_sentence1", new_sentence1)
 
             # new_sentence1 is with mask+number
             masked_sentences.append(new_sentence1)
@@ -1224,13 +1460,12 @@ def score_sentence_bleu(reference_path, candidate_path, DIR_OUT=None, indices=No
         indices = range(len(reference))
 
     if len(reference) != len(candidate):
-        raise ValueError('The number of sentences in both files do not match.' + str(len(ref)) + str(len(candidate)))
-
+        raise ValueError('The number of sentences in both files do not match.')
 
     if len(indices) == 0:
         score = 0.
     else:
-        if save_score == True:  ##I THINK I SHOULD DELETE THIS OPTION since I don't use it in the new code
+        if save_score == True:  ## I THINK I SHOULD DELETE THIS OPTION since I don't use it in the new code
             bleu = []
             for i in indices:
                 score += sentence_bleu([reference[i].strip().split()], candidate[i].strip().split())
@@ -1250,9 +1485,14 @@ def score_sentence_bleu(reference_path, candidate_path, DIR_OUT=None, indices=No
 
                 ###############################################################
 
+    # score /= len(reference) FIXED THIS (15_10_21)
     score /= len(indices)
 
     ###############################################################
+    #print("^" * 20)
+    #print("I'm inside score_sentence_bleu function")
+    #print("len(indices), len(bleu): ", len(indices), len(bleu))
+    #print("^" * 20)
 
     return score, bleu
 
@@ -1300,7 +1540,7 @@ def choose_by_bleu(ref, candidates):
     index_max = list_bleu_per_candidate.index(
         max(list_bleu_per_candidate))  # index of candidate with max bleu score
 
-    # # print("max bleu score is ", max_bleu)
+    # #print("max bleu score is ", max_bleu)
 
     max_bleu_dict = {}
     max_bleu_dict["max_bleu"] = max_bleu
@@ -1318,9 +1558,8 @@ def parse_ref_candidate(DIR_OUT, trg_lang, mask_type, reference, current_candida
         DIR_OUT + temp_filename + "_" + "_" + trg_lang + "_dict_parse_candidate_" + mask_type + ".txt")
 
     if not (CHECK_FOLDER_REF & CHECK_FOLDER_CAN):
-        raise RuntimeError('NO '+str(CHECK_FOLDER_REF)+', '+str(CHECK_FOLDER_CAN))
-        # # print("parsing" + "_" + trg_lang + " for " + mask_type + " !")
 
+        # #print("parsing" + "_" + trg_lang + " for " + mask_type + " !")
 
         dict_parse_ref_mask = preprocess(reference, DIR_OUT,
                                          temp_filename + "_" + "_" + trg_lang + "_dict_parse_ref",
@@ -1333,8 +1572,7 @@ def parse_ref_candidate(DIR_OUT, trg_lang, mask_type, reference, current_candida
                                                mask_type=mask_type,
                                                save=True)
     else:
-        print('done parse ref')
-        sys.exit()
+
         dict_parse_ref_mask = load_pickle(
             DIR_OUT + temp_filename + "_" + trg_lang + "_dict_parse_ref_" + mask_type + ".txt")
 
@@ -1384,9 +1622,9 @@ def hallucination_score(reference_path, candidate_path, mask, indices=None):
         miss /= len(indices)
         hit /= len(indices)
 
-        # # print("add:", add)
-        # # print("miss:", miss)
-        # # print("hit", hit)
+        # #print("add:", add)
+        # #print("miss:", miss)
+        # #print("hit", hit)
 
     return add, miss, hit
 
@@ -1448,7 +1686,15 @@ def score_sentence_rouge(reference_path, candidate_path, DIR_OUT=None, indices=N
 
     return score, score_list
 
+def muler_new(bleu_not_masked_list,bleu_masked_list,bleu_min_list):
 
+    score = 0
+
+    for i in range(len(bleu_not_masked_list)):
+        score += (bleu_masked_list[i] - bleu_not_masked_list[i])/(bleu_masked_list[i] - bleu_min_list[i])
+    score /= len(bleu_not_masked_list)
+
+    return score
 ######################################################################################################################
 
 # full process (seperately for pos,ner; later I will join them)
@@ -1490,46 +1736,38 @@ def compute_scores(ref_input, candidate_input, DIR_OUT, parsed_model_ref, parsed
                                                            DIR_OUT, indices=None,
                                                            save_score=True)
 
-    # print("len(bleu_not_masked_list) -- over ALL sentences", len(bleu_not_masked_list))
+    #print("len(bleu_not_masked_list) -- over ALL sentences", len(bleu_not_masked_list))
 
-    # print("**score_type**",score_type)
+    #print("**score_type**",score_type)
 
     dict_results[score_type + "_not_masked"] = bleu_not_masked  # ORIGINAL #this is not over the indices, it's the original bleu score of the file! it can be used to choose the file with the best bleu for example
 
     for mask in mask_list:
 
-        # print("mask", mask)
+        #print("mask", mask)
 
         masked_ref, indices_ref = mask_text(ref_input, parsed_model_ref, mask, mask_type)
         masked_candidate, indices_candidate = mask_text(candidate_input, parsed_model_candidate,
                                                         mask, mask_type)
 
+        #added
+        masked_ref_min, indices_ref_min = mask_text_min(ref_input, parsed_model_ref, mask, mask_type, mask_shape = "X")
+        masked_candidate_min, indices_candidate_min = mask_text_min(candidate_input, parsed_model_candidate,
+                                                        mask, mask_type,mask_shape = "Y")
+
         ################################################################################################################################
 
         indices = indices_intersection(indices_ref, indices_candidate)
 
-        # print("len(indices)", len(indices))
-
-        #####DELETE LATER#####
-        # print("#"*50)
-        # print(mask)
-        # for ind1 in indices:
-            # print("reference: " + ref_input[ind1])
-            # print("reference_masked: " + masked_ref[ind1])
-            # print("*"*10)
-            # print("candidate: " + candidate_input[ind1])
-            # print("candidate_masked: " + masked_candidate[ind1])
-
-        # print("#" * 50)
-        ######################
-        for ind1 in indices:
-            with open(DIR_OUT + mask_type + "_" + score_type + "_check.txt", "w") as outfile1:
-                outfile1.write("reference_masked: " + masked_ref[ind1] + "\n")
-                outfile1.write("reference: " + ref_input[ind1] + "\n")
-                outfile1.write("candidate_masked: " + masked_candidate[ind1] + "\n")
-                outfile1.write("candidate: " + candidate_input[ind1] + "\n")
-                outfile1.write("*" * 100 + "\n")
-        ######################
+        """#DELETE LATER# ##for long tail experiment##
+        print("mask", mask)
+        print("len(ref)", len(ref_input))
+        print("len(indices)", len(indices))
+        print("len(indices_ref)", len(indices_ref))
+        print("len(indices_candidate)", len(indices_candidate))
+        print("len(indices)/len(ref)", len(indices) / len(ref_input))
+        print("len(indices_ref)/len(ref)", len(indices_ref) / len(ref_input))
+        print("len(indices_candidate)/len(candidate)", len(indices_candidate) / len(ref_input))"""
 
         # bleu
 
@@ -1537,54 +1775,22 @@ def compute_scores(ref_input, candidate_input, DIR_OUT, parsed_model_ref, parsed
 
             total_bleu = "NA"
         else:
-            # score_masked, _ = score_function(masked_ref, masked_candidate, indices,save_score=False)
             score_masked, bleu_masked_list = score_function(masked_ref, masked_candidate, DIR_OUT, indices,
-                                                            save_score=False)  # THERE IS A BUG HERE --> for some reason the function doesn't read the indices correctly and treats them as None
+                                                            save_score=False)
+            #added
+            score_masked_min, bleu_masked_min_list = score_function(masked_ref_min, masked_candidate_min, DIR_OUT, indices,
+                                                            save_score=False)
+
             ####added this here#####
             score_not_masked, bleu_not_masked_list = score_function(ref_input, candidate_input,
                                                                     DIR_OUT, indices,
                                                                     save_score=False)  # now this is the bleu score only over the indices
 
-            # print("len(bleu_not_masked_list)", len(bleu_not_masked_list))
-            # print("len(bleu_masked_list)", len(bleu_masked_list))
+            print("len(bleu_not_masked_list),len(bleu_masked_list),len(bleu_masked_min_list): ",len(bleu_not_masked_list),len(bleu_masked_list),len(bleu_masked_min_list))
 
-            total_bleu = score_masked - score_not_masked  # ORIGINAL
+            #total_bleu = score_masked - score_not_masked  # ORIGINAL MuLER
 
-            # print("score_masked [from score function]", score_masked)
-            # print("score_not_masked [from score function]", score_not_masked)
-            # print("total bleu [score masked - score_not_masked]", total_bleu)
-
-            ##sanity check##
-            score_masked_check = 0
-            score_not_masked_check = 0
-
-            for i in range(len(bleu_not_masked_list)):
-                score_not_masked_check += bleu_not_masked_list[i]
-            score_not_masked_check /= len(bleu_not_masked_list)
-            for i in range(len(bleu_masked_list)):
-                score_masked_check += bleu_masked_list[i]
-            score_masked_check /= len(bleu_masked_list)
-            # print("compute score manually with the sum")
-            # print("score_masked", score_masked_check)
-            # print("score_not_masked", score_not_masked_check)
-
-            # print("FINAL CHECK")
-            a = 0
-            for i in range(len(bleu_masked_list)):
-                a += bleu_masked_list[i]
-            a /= len(bleu_masked_list)
-            # print("score_masked [sum ONLY over indices]", a)
-            # print("total bleu [sum ONLY over indices]", a - score_not_masked_check)
-            # print("total bleu [sum over WRONG indices]", total_bleu)
-
-            # print("*" * 20)
-            counter_neg_score = 0.
-            for i in range(len(bleu_not_masked_list)):
-                if bleu_masked_list[i] < bleu_not_masked_list[i]:
-                    counter_neg_score += 1
-
-            # print("counter_neg_score", counter_neg_score)
-            ################
+            total_bleu = muler_new(bleu_not_masked_list,bleu_masked_list,bleu_masked_min_list)
 
         dict_bleu[mask] = total_bleu
 
@@ -1608,21 +1814,21 @@ def parse_file(DIR_OUT, mask_type, input, temp_filename, trg_lang="en"):
     :return: parsed dictionary + save the parsed dictionary to DIR_OUT if it doesn't already exist
     """
 
-    # print("temp_filename", temp_filename)
-    # print("DIR_OUT", DIR_OUT)
-    # print("mask_type", mask_type)
+    #print("temp_filename", temp_filename)
+    #print("DIR_OUT", DIR_OUT)
+    #print("mask_type", mask_type)
 
     CHECK_FOLDER_REF = os.path.isfile(DIR_OUT + temp_filename + "_dict_parse_" + mask_type + ".txt")
 
     if not (CHECK_FOLDER_REF):
-        # raise RuntimeError('no file '+str(CHECK_FOLDER_REF))
+
         dict_parse = preprocess(input, DIR_OUT,
                                 temp_filename + "_dict_parse",
                                 lang=trg_lang,
                                 model_type=mask_type, mask_type=mask_type, save=True)
 
     else:
-        # sys.exit()
+
         dict_parse = load_pickle(
             DIR_OUT + temp_filename + "_dict_parse_" + mask_type + ".txt")
 
@@ -1766,18 +1972,18 @@ def run_main(DIR_OUT, mask_list_path, ref_input, candidates_input, mask_type, tr
             ###################################
 
             for ind_candidate in range(len(candidates)):
-                print('ind_candidate', ind_candidate)
-                # print("len(candidates)", len(candidates))
+
+                #print("len(candidates)", len(candidates))
 
                 current_candidate = candidates[ind_candidate]
 
-                # print("current_candidate", current_candidate)
+                #print("current_candidate", current_candidate)
 
                 ######added this for Gal###########
 
                 if type(candidates_input[ind_candidate]) == str:
 
-                    # print("candidates_input[ind_candidate]", candidates_input[ind_candidate])
+                    #print("candidates_input[ind_candidate]", candidates_input[ind_candidate])
 
                     temp_filename_candidate = candidates_input[ind_candidate].strip(".txt")
                     temp_filename_candidate = temp_filename_candidate.split("/")
@@ -1844,7 +2050,7 @@ def run_main(DIR_OUT, mask_list_path, ref_input, candidates_input, mask_type, tr
             DIR_OUT_PARSE = DIR_OUT + "parsed_files/"
             make_folder(DIR_OUT_PARSE)
 
-            # # print("DIR_OUT_PARSE",DIR_OUT_PARSE)
+            # #print("DIR_OUT_PARSE",DIR_OUT_PARSE)
 
             dict_parse_ref_mask = parse_file(DIR_OUT_PARSE, mask_type, reference, temp_filename_ref, trg_lang)
             dict_parse_candidate_mask = parse_file(DIR_OUT_PARSE, mask_type, current_candidate, temp_filename_candidate,
@@ -1931,37 +2137,35 @@ def run_main(DIR_OUT, mask_list_path, ref_input, candidates_input, mask_type, tr
 # main
 #note for gal: if you want to use the existing parsed file, in "run_main" function you need to supply "DIR_OUT" which contains the parsed ref_input and parsed candidate_input
 
-# # ARGS
-# DIR_OUT = "/cs/snapless/oabend/tailin/MT/NEW/outputs/20.10.21/"
-#
-# ref_input = "/cs/snapless/oabend/tailin/MT/NEW/codes/trial_data/181021/ref_ner_neg.txt"
-# # ref_input = "/cs/snapless/oabend/borgr/SSMT/data/submissions/wmt19/plain/references/newstest2019-deen-ref.en"
-#
-#
-# candidates_inputs = [["/cs/snapless/oabend/tailin/MT/NEW/codes/trial_data/181021/can_ner_neg.txt"]]
-# # candidates_inputs = [["/cs/snapless/oabend/borgr/SSMT/data/submissions/wmt19/plain/system-outputs/newstest2019/de-en/newstest2019.Facebook_FAIR.6750.de-en"],["/cs/snapless/oabend/borgr/SSMT/data/submissions/wmt19/plain/system-outputs/newstest2019/de-en/newstest2019.online-A.0.de-en"],["/cs/snapless/oabend/borgr/SSMT/data/submissions/wmt19/plain/system-outputs/newstest2019/de-en/newstest2019.UCAM.6461.de-en"],["/cs/snapless/oabend/borgr/SSMT/data/submissions/wmt19/plain/system-outputs/newstest2019/de-en/newstest2019.uedin.6749.de-en"]]
-# # candidates_input = candidates_inputs[0]
-#
-# mask_types = ["pos","ner"]
-#
-# for mask_type in mask_types:
-#
-#     # print("mask_type",mask_type)
-#
-#     for candidates_input in candidates_inputs:
-#
-#         # print("mask_type", mask_type)
-#
-#         mask_list_path = "/cs/snapless/oabend/tailin/MT/NEW/codes/trial_data/" + mask_type + "_mask_list.txt"
-#
-#         result = run_main(DIR_OUT, mask_list_path, ref_input, candidates_input, mask_type, trg_lang="en",
-#                               max_bleu_dict_path=None, run_all=True, score_type="bleu", mask_text_version=None)
-#
-#         # print("result")
-#         # print(result)
-#
-#         # print("%" * 100)
-#         # print("%" * 100)
-#
-# ##################################################
+# ARGS
+DIR_OUT = "/cs/snapless/oabend/tailin/MT/NEW/outputs/20.10.21/new/"
+DIR_OUT_RESULTS = "/cs/snapless/oabend/tailin/MT/NEW/outputs/28.10.21/"
+
+ref_input = "/cs/snapless/oabend/tailin/MT/NEW/codes/trial_data/181021/ref_ner_neg.txt"
+
+candidates_inputs = [["/cs/snapless/oabend/tailin/MT/NEW/codes/trial_data/181021/can_ner_neg.txt"]]
+
+
+##################################################
+mask_types = ["pos","ner","feat"]
+
+for mask_type in mask_types:
+
+    #print("mask_type",mask_type)
+
+    for candidates_input in candidates_inputs:
+
+        print("mask_type", mask_type)
+
+        mask_list_path = "/cs/snapless/oabend/tailin/MT/NEW/codes/trial_data/" + mask_type + "_mask_list.txt"
+
+        result = run_main(DIR_OUT, mask_list_path, ref_input, candidates_input, mask_type, trg_lang="en",
+                              max_bleu_dict_path=None, run_all=True, score_type="bleu", mask_text_version=None)
+
+        print("result")
+        print(result)
+
+        print("%" * 100)
+        print("%" * 100)
+
 
